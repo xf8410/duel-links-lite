@@ -40,7 +40,7 @@ class DuelViewModel : ViewModel() {
         if (mode == Mode.AI) maybeRunAi()
     }
 
-    fun startNet(isHost: Boolean, host: String, port: Int = 8765) {
+    fun startNet(isHost: Boolean, host: String = "", port: Int = 8765) {
         net = LanConnection()
         localPlayer = if (isHost) 0 else 1
         viewPlayer = localPlayer
@@ -138,7 +138,7 @@ class DuelViewModel : ViewModel() {
             perform(SummonNormalAction(viewPlayer, handIndex, zone, set))
         } else {
             val need = if (lvl >= 7) 2 else 1
-            val tributes = (0..2).filter { st.monsterZones[viewPlayer][it]?.owner == viewPlayer }.take(need)
+            val tributes = (0..4).filter { st.monsterZones[viewPlayer][it]?.owner == viewPlayer }.take(need)
             if (tributes.size == need) perform(SummonTributeAction(viewPlayer, handIndex, zone, tributes, set))
         }
     }
@@ -166,7 +166,7 @@ class DuelViewModel : ViewModel() {
         val st = engine.state
         val ps = st.players[viewPlayer]
         val handMons = ps.hand.mapIndexedNotNull { i, c -> if (c.type == CardType.MONSTER) i else null }
-        val fieldMons = (0..2).filter { st.monsterZones[viewPlayer][it] != null }
+        val fieldMons = (0..4).filter { st.monsterZones[viewPlayer][it] != null }
         return when (kind) {
             SummonKind.FUSION -> {
                 val extra = ps.extraDeck.getOrNull(extraIndex) ?: return false
@@ -265,6 +265,6 @@ class DuelViewModel : ViewModel() {
         val all = handMons.map { true to it } + fieldMons.map { false to it }
         if (all.isEmpty()) return null
         val (isHand, idx) = all.first()
-        return if (isHand) listOf(idx) to emptyList() else emptyList() to listOf(idx)
+        return if (isHand) listOf(idx) to emptyList<Int>() else emptyList<Int>() to listOf(idx)
     }
 }
