@@ -1,5 +1,7 @@
 package com.duellinks.lite.engine
 
+import com.duellinks.lite.engine.Attribute.*
+import com.duellinks.lite.engine.Race.*
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
