@@ -54,17 +54,17 @@ fun DuelScreen(vm: DuelViewModel) {
     Column(Modifier.fillMaxSize().padding(4.dp)) {
         PlayerInfo(st, op, vm)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            for (z in 0..2) SpellZone(vm, op, z)
+            for (z in 0..4) SpellZone(vm, op, z)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            for (z in 0..2) MonsterZone(vm, op, z)
+            for (z in 0..4) MonsterZone(vm, op, z)
         }
         Controls(vm) { showSpecial = true }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            for (z in 0..2) MonsterZone(vm, vm.viewPlayer, z)
+            for (z in 0..4) MonsterZone(vm, vm.viewPlayer, z)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            for (z in 0..2) SpellZone(vm, vm.viewPlayer, z)
+            for (z in 0..4) SpellZone(vm, vm.viewPlayer, z)
         }
         PlayerInfo(st, vm.viewPlayer, vm)
         HandRow(vm)
@@ -97,7 +97,7 @@ fun MonsterZone(vm: DuelViewModel, owner: Int, zone: Int) {
     val fm = st.monsterZones[owner][zone]
     val isOpp = owner != vm.viewPlayer
     Box(
-        Modifier.size(64.dp, 90.dp).padding(2.dp)
+        Modifier.size(60.dp, 84.dp).padding(2.dp)
             .border(1.dp, Color.Gray.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
     ) {
         if (fm == null) {
@@ -129,7 +129,7 @@ fun SpellZone(vm: DuelViewModel, owner: Int, zone: Int) {
     val fs = st.spellZones[owner][zone]
     val isOpp = owner != vm.viewPlayer
     Box(
-        Modifier.size(64.dp, 90.dp).padding(2.dp)
+        Modifier.size(60.dp, 84.dp).padding(2.dp)
             .border(1.dp, Color.Gray.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
     ) {
         if (fs == null) {
@@ -175,7 +175,7 @@ fun HandRow(vm: DuelViewModel) {
     LazyRow(Modifier.fillMaxWidth().height(96.dp).padding(2.dp)) {
         items(hand.size) { i ->
             val card = hand[i]
-            Box(Modifier.padding(2.dp).width(64.dp)) {
+            Box(Modifier.padding(2.dp).width(60.dp)) {
                 CardFace(
                     card, selected = vm.selectedHand.value == i, modifier = Modifier.fillMaxSize(),
                     onClick = {
