@@ -22,12 +22,20 @@ class DuelViewModel : ViewModel() {
     var passTo = mutableStateOf(0)
     var netError = mutableStateOf("")
 
-    // 财前葵形态与技能（技能互通）
+    // 财前葵形态与技能（技能互通，但每个技能有"所需形态"）
     var useAoi = mutableStateOf(false)
     var selectedSkin = mutableStateOf(Skin.BLUE_ANGEL)
     var selectedSkill = mutableStateOf(Aoi.skills.first())
 
     private var net: LanConnection? = null
+
+    fun setSkin(s: Skin) {
+        selectedSkin.value = s
+        val avail = Aoi.skillsFor(s)
+        if (avail.none { it.id == selectedSkill.value.id }) {
+            selectedSkill.value = avail.firstOrNull() ?: selectedSkill.value
+        }
+    }
 
     private fun deckForPlayer0(): Pair<List<Card>, List<Card>> =
         if (useAoi.value) Aoi.deckFor(selectedSkin.value) else (CardDatabase.defaultDeck() to CardDatabase.defaultExtraDeck())
@@ -48,7 +56,9 @@ class DuelViewModel : ViewModel() {
     }
 
     private fun applySkillSetup() {
-        val extra = Aoi.applySkillSetup(selectedSkill.value, engine.state.players[0].extraDeck)
+        val sk = selectedSkill.value
+        if (sk.requiredForm != selectedSkin.value) return
+        val extra = Aoi.applySkillSetup(sk, engine.state.players[0].extraDeck)
         engine.state = engine.state.copy(players = engine.state.players.toMutableList().also { it[0] = it[0].copy(extraDeck = extra) })
     }
 
