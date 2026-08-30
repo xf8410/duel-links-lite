@@ -34,6 +34,18 @@ enum class EffectTag {
 }
 
 @Serializable
+enum class TriggerPoint {
+    ON_SUMMON, ON_DESTROY, ON_ADD_TO_HAND, ON_ATTACK_DECLARE, ON_TURN_START
+}
+
+@Serializable
+data class ChainLink(
+    val card: Card,
+    val player: Int,
+    val trigger: TriggerPoint
+)
+
+@Serializable
 data class MonsterStats(
     val level: Int? = null,
     val rank: Int? = null,
@@ -59,7 +71,8 @@ data class Card(
     val text: String = "",
     val effectTags: List<EffectTag> = emptyList(),
     val materials: List<String> = emptyList(),
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val trigger: TriggerPoint? = null
 )
 
 @Serializable
@@ -109,7 +122,8 @@ data class GameState(
     val winner: Int = -1,
     val normalSummonUsed: List<Boolean> = listOf(false, false),
     val log: List<String> = emptyList(),
-    val skillFlags: Set<String> = emptySet()
+    val skillFlags: Set<String> = emptySet(),
+    val pendingTriggers: List<ChainLink> = emptyList()
 )
 
 @Serializable
