@@ -56,17 +56,16 @@ object Aoi {
         img: String? = null, trig: TriggerPoint? = null
     ) = Card(id, name, MONSTER, kind, MonsterStats(level, rank, link, atk, def, attr, race, tud, pend, arrows), null, null, text, tags, mats, img, trig)
 
-    private fun spell(id: String, name: String, st: SpellType, tags: List<EffectTag> = emptyList(), text: String = "", trig: TriggerPoint? = null) =
-        Card(id, name, SPELL, spellType = st, effectTags = tags, text = text, trigger = trig)
+    private fun spell(id: String, name: String, st: SpellType, tags: List<EffectTag> = emptyList(), text: String = "", img: String? = null, trig: TriggerPoint? = null) =
+        Card(id, name, SPELL, spellType = st, effectTags = tags, text = text, imageUrl = img, trigger = trig)
 
-    private fun trap(id: String, name: String, tt: TrapType, tags: List<EffectTag> = emptyList(), text: String = "", trig: TriggerPoint? = null) =
-        Card(id, name, TRAP, trapType = tt, effectTags = tags, text = text, trigger = trig)
+    private fun trap(id: String, name: String, tt: TrapType, tags: List<EffectTag> = emptyList(), text: String = "", img: String? = null, trig: TriggerPoint? = null) =
+        Card(id, name, TRAP, trapType = tt, effectTags = tags, text = text, imageUrl = img, trigger = trig)
 
     private fun img(id: String) = "https://images.ygoprodeck.com/images/cards/$id.jpg"
 
     // ========== 淘气仙星 (Trickstar) — 数据来自 YGOPRODeck API ==========
     private val trickstarCards: List<Card> = listOf(
-        // 主卡组怪兽
         mon("61283655", "Trickstar Candina", 4, null, null, 1800, 400, LIGHT, FAIRY,
             tags = listOf(DRAW_2), trig = ON_SUMMON,
             text = "When this card is Normal Summoned: You can add 1 \"Trickstar\" card from your Deck to your hand. Each time your opponent activates a Spell/Trap Card, inflict 200 damage to them immediately after it resolves.",
@@ -101,7 +100,6 @@ object Aoi {
         mon("1410324", "Trickstar Hoody", 2, null, null, 600, 1800, LIGHT, FAIRY,
             text = "If you control a \"Trickstar\" Fusion or Link Monster: You can Special Summon this card from your hand. If this card is sent to the GY as material for a \"Trickstar\" Link Monster: You can add 1 \"Trickstar Fusion\" or \"Trickstar Diffusion\" from your Deck to your hand.",
             img = img("1410324")),
-        // 魔法卡
         spell("35371948", "Trickstar Light Stage", SpellType.FIELD, tags = listOf(BURN_500), trig = ON_ADD_TO_HAND,
             text = "When this card is activated: You can add 1 \"Trickstar\" monster from your Deck to your hand. Once per turn: You can target 1 Set card in your opponent's Spell & Trap Zone; while this card is in the Field Zone, that Set card cannot be activated until the End Phase. Each time a \"Trickstar\" monster you control inflicts battle or effect damage to your opponent, inflict 200 damage to them.",
             img = img("35371948")),
@@ -117,11 +115,9 @@ object Aoi {
         spell("22159429", "Trickstar Magical Laurel", SpellType.EQUIP, tags = listOf(REVIVE_ONE),
             text = "Activate this card by targeting 1 \"Trickstar\" monster in your GY; Special Summon it and equip it with this card. When this card leaves the field, destroy that monster. Once per turn, if the equipped monster inflicts battle or effect damage to your opponent: You can Special Summon 1 \"Trickstar\" monster from your hand.",
             img = img("22159429")),
-        // 陷阱卡
         trap("21076084", "Trickstar Reincarnation", TrapType.NORMAL, tags = listOf(POP_SPELL_TRAP),
             text = "Banish your opponent's entire hand, and if you do, they draw the same number of cards. You can banish this card from your GY, then target 1 \"Trickstar\" monster in your GY; Special Summon it.",
             img = img("21076084")),
-        // 额外卡组连接怪兽
         mon("32448765", "Trickstar Holly Angel", null, null, 2, 2000, null, LIGHT, FAIRY, kind = SummonKind.LINK,
             arrows = listOf(BOTTOMLEFT, BOTTOMRIGHT), tags = listOf(BURN_500), trig = ON_SUMMON,
             text = "2 \"Trickstar\" monsters. Each time a \"Trickstar\" monster(s) is Normal or Special Summoned to a zone(s) this card points to, inflict 200 damage to your opponent. \"Trickstar\" monsters this card points to cannot be destroyed by battle or card effects.",
@@ -158,7 +154,6 @@ object Aoi {
 
     // ========== 海晶少女 (Marincess) — 数据来自 YGOPRODeck API ==========
     private val marincessCards: List<Card> = listOf(
-        // 主卡组怪兽
         mon("91953000", "Marincess Blue Tang", 4, null, null, 1500, 1200, WATER, CYBERSE,
             tags = listOf(DESTROY_ONE_MONSTER), trig = ON_SUMMON,
             text = "If this card is Normal or Special Summoned: You can send 1 \"Marincess\" monster from your Deck to the GY, except \"Marincess Blue Tang\". If this card is sent to the GY as material for the Link Summon of a WATER monster: You can excavate the top 3 cards of your Deck, and if you do, you can add 1 excavated \"Marincess\" card to your hand.",
@@ -195,14 +190,12 @@ object Aoi {
             tags = listOf(DESTROY_ONE_MONSTER), trig = ON_SUMMON,
             text = "You can target 1 \"Marincess\" card you control; Special Summon this card from your hand, and if you do, it gains this effect: While this card is in the Monster Zone, the targeted card cannot be destroyed by your opponent's card effects.",
             img = img("57541158")),
-        // 魔法卡
         spell("91027843", "Marincess Battle Ocean", SpellType.FIELD, tags = listOf(BUFF_SELF_500),
             text = "All \"Marincess\" monsters you control gain 200 ATK, also each one gains 600 ATK for each \"Marincess\" card equipped to it. When you Link Summon a \"Marincess\" monster to the Extra Monster Zone: You can equip up to 3 \"Marincess\" Link Monsters with different names from your GY to that Link Summoned monster.",
             img = img("91027843")),
         spell("57329501", "Marincess Dive", SpellType.NORMAL, tags = listOf(REVIVE_ONE),
             text = "Activate 1 of the following effects: Target 1 non-Link \"Marincess\" monster in your GY; Special Summon it. Or if \"Marincess Battle Ocean\" is in your Field Zone: Special Summon 1 \"Marincess\" monster from your Deck.",
             img = img("57329501")),
-        // 陷阱卡
         trap("52945066", "Marincess Wave", TrapType.NORMAL, tags = listOf(DESTROY_ONE_MONSTER), trig = ON_ATTACK_DECLARE,
             text = "If you control a \"Marincess\" Link Monster: Target 1 face-up monster your opponent controls; negate that face-up monster's effects until the end of this turn, then, if you control a Link-2 or higher \"Marincess\" monster, all face-up monsters you currently control are unaffected by your opponent's card effects until the end of this turn.",
             img = img("52945066")),
@@ -221,7 +214,6 @@ object Aoi {
         trap("19712214", "Marincess Bubble Ring", TrapType.NORMAL, tags = listOf(DESTROY_ONE_MONSTER), trig = ON_ATTACK_DECLARE,
             text = "When a monster declares an attack: Negate the attack, and if you do, Special Summon 1 \"Marincess Crystal Heart\" from your Extra Deck or GY.",
             img = img("19712214")),
-        // 额外卡组连接怪兽
         mon("79130389", "Marincess Coral Anemone", null, null, 2, 2000, null, WATER, CYBERSE, kind = SummonKind.LINK,
             arrows = listOf(LEFT, BOTTOM), tags = listOf(REVIVE_ONE), trig = ON_SUMMON,
             text = "2 WATER monsters. You can target 1 WATER monster with 1500 or less ATK in your GY; Special Summon it to your zone this card points to. If this card is sent from the field to the GY: You can target 1 \"Marincess\" card in your GY; add it to your hand.",
