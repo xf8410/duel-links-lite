@@ -69,10 +69,10 @@ object CardDatabase {
             materials = listOf("等级4怪兽x2"), text = "超量：等级4怪兽x2。"),
 
         // ---- Link monsters ----
-        mon("91968023", "连接蜘蛛", null, null, 2, 1000, null, EARTH, CYB, kind = LINK,
+        mon("91968023", "连接蜘蛛", null, null, 2, 1000, null, EARTH, CYBERSE, kind = LINK,
             arrows = listOf(BOTTOMLEFT, BOTTOMRIGHT), image = IMG + "91968023.jpg",
             text = "连接2：通常怪兽1只。", materials = listOf("通常怪兽1只")),
-        mon("id_decodetalker", "解码语者", null, null, 3, 2300, null, DARK, CYB, kind = LINK,
+        mon("id_decodetalker", "解码语者", null, null, 3, 2300, null, DARK, CYBERSE, kind = LINK,
             arrows = listOf(LEFT, BOTTOM, RIGHT), text = "连接3：效果怪兽2只以上。",
             materials = listOf("效果怪兽2只以上")),
 
