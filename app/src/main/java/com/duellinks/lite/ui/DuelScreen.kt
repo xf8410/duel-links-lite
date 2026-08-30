@@ -30,7 +30,7 @@ fun DuelApp() {
 fun MenuScreen(vm: DuelViewModel) {
     var ip by remember { mutableStateOf("") }
     Column(
-        Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
+        Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -44,7 +44,6 @@ fun MenuScreen(vm: DuelViewModel) {
         Button(onClick = { vm.startNet(isHost = false, host = ip) }, Modifier.fillMaxWidth()) { Text("联机 · 加入房间") }
         if (vm.netError.value.isNotEmpty()) Text("网络: ${vm.netError.value}", color = Color.Red, fontSize = 12.sp)
 
-        // ---- 财前葵：三形态（角色） + 互通技能 ----
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
             Checkbox(checked = vm.useAoi.value, onCheckedChange = { vm.useAoi.value = it })
             Text("使用财前葵", fontSize = 13.sp)
