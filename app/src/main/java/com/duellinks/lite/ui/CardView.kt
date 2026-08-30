@@ -25,6 +25,12 @@ fun CardFace(
     selected: Boolean = false,
     onClick: () -> Unit = {}
 ) {
+    // 有官方密码(id 全数字)的卡自动拼出 YGOPRODeck 官方图地址，离线时回落占位卡面。
+    val url = card.imageUrl ?: run {
+        if (card.id.length == 8 && card.id.all { it.isDigit() })
+            "https://images.ygoprodeck.com/images/cards/${card.id}.jpg"
+        else null
+    }
     val bg = when {
         faceDown -> Color(0xFF1B2A4A)
         card.type == CardType.MONSTER -> Color(0xFF3A2E1E)
@@ -45,7 +51,7 @@ fun CardFace(
         if (faceDown) {
             Text("?", color = Color.White, fontSize = 22.sp, modifier = Modifier.align(Alignment.Center))
         } else {
-            card.imageUrl?.let {
+            url?.let {
                 AsyncImage(
                     model = it, contentDescription = card.name,
                     modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop, alpha = 0.35f

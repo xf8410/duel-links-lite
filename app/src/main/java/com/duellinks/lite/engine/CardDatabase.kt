@@ -31,7 +31,7 @@ object CardDatabase {
     private fun trap(id: String, name: String, ttype: TrapType, text: String = "", image: String? = null) =
         Card(id, name, TRAP, trapType = ttype, text = text, imageUrl = image)
 
-    val all: List<Card> = listOf(
+    var all: List<Card> = listOf(
         // ---- Normal monsters ----
         mon("89631139", "青眼白龙", 8, null, null, 3000, 2500, LIGHT, DRAGON, image = IMG + "89631139.jpg",
             text = "以高攻击力著称的传说之龙。"),
@@ -113,6 +113,13 @@ object CardDatabase {
     )
 
     private fun byId(id: String) = all.first { it.id == id }
+
+    // 用官方 API 返回的数据补全卡文与卡图（离线回落到内置 text/imageUrl）。
+    fun enrich(data: Map<String, Pair<String, String>>) {
+        all = all.map { c ->
+            data[c.name]?.let { (t, u) -> c.copy(text = t, imageUrl = c.imageUrl ?: u) } ?: c
+        }
+    }
 
     fun defaultDeck(): List<Card> = listOf(
         byId("89631139"), byId("89631139"), byId("74677422"), byId("46986414"),
