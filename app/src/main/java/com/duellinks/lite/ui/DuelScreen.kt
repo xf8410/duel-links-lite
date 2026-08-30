@@ -30,18 +30,49 @@ fun DuelApp() {
 fun MenuScreen(vm: DuelViewModel) {
     var ip by remember { mutableStateOf("") }
     Column(
-        Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("决斗链接 Lite", style = MaterialTheme.typography.headlineMedium)
         Text("Kotlin 安卓版 · 融合/同调/超量/链接/灵摆", fontSize = 12.sp, color = Color.Gray)
+
         Button(onClick = { vm.start(Mode.AI) }, Modifier.fillMaxWidth()) { Text("单人 · 对战 AI") }
         Button(onClick = { vm.start(Mode.HOTSEAT) }, Modifier.fillMaxWidth()) { Text("双人 · 同屏热座") }
         Button(onClick = { vm.startNet(isHost = true) }, Modifier.fillMaxWidth()) { Text("联机 · 创建房间（主机）") }
         OutlinedTextField(value = ip, onValueChange = { ip = it }, label = { Text("对手设备的 IP") }, singleLine = true)
         Button(onClick = { vm.startNet(isHost = false, host = ip) }, Modifier.fillMaxWidth()) { Text("联机 · 加入房间") }
         if (vm.netError.value.isNotEmpty()) Text("网络: ${vm.netError.value}", color = Color.Red, fontSize = 12.sp)
+
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+            Checkbox(checked = vm.useAoi.value, onCheckedChange = { vm.useAoi.value = it })
+            Text("使用财前葵", fontSize = 13.sp)
+        }
+        if (vm.useAoi.value) {
+            Text("形态（不同角色）", color = Color.Gray, fontSize = 12.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                Skin.entries.forEach { s ->
+                    FilterChip(
+                        selected = vm.selectedSkin.value == s,
+                        onClick = { vm.selectedSkin.value = s },
+                        label = { Text(s.label, fontSize = 9.sp) }
+                    )
+                }
+            }
+            val skill = vm.selectedSkill.value
+            Text("技能（三形态互通）：${skill.label}", color = Color.Cyan, fontSize = 11.sp)
+            Text(skill.desc, color = Color.Gray, fontSize = 10.sp)
+            Text("技能", color = Color.Gray, fontSize = 12.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                Aoi.skills.forEach { sk ->
+                    FilterChip(
+                        selected = vm.selectedSkill.value.id == sk.id,
+                        onClick = { vm.selectedSkill.value = sk },
+                        label = { Text(sk.label, fontSize = 9.sp) }
+                    )
+                }
+            }
+        }
     }
 }
 
