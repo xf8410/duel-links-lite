@@ -58,6 +58,7 @@ class DuelEngine(var state: GameState = GameState()) {
         val ps = state.players[player]
         replacePlayer(player, ps.copy(graveyard = ps.graveyard + m.card))
         log("${m.card.name} 被破坏")
+        checkTriggers(TriggerPoint.ON_DESTROY, player)
     }
 
     private fun destroyAllMonsters() {
@@ -101,6 +102,36 @@ class DuelEngine(var state: GameState = GameState()) {
         return card.monster?.attribute == Attribute.WATER
     }
 
+    // ---- 时点触发检查 ----
+    private fun checkTriggers(point: TriggerPoint, checkPlayer: Int) {
+        val newTriggers = mutableListOf<ChainLink>()
+        for (z in 0..4) {
+            val m = state.monsterZones[checkPlayer][z] ?: continue
+            if (m.card.trigger == point) {
+                newTriggers.add(ChainLink(m.card, checkPlayer, point))
+            }
+        }
+        if (newTriggers.isNotEmpty()) {
+            state = state.copy(pendingTriggers = state.pendingTriggers + newTriggers)
+        }
+    }
+
+    fun resolveTrigger(index: Int, activate: Boolean) {
+        if (index >= state.pendingTriggers.size) return
+        val link = state.pendingTriggers[index]
+        if (activate) {
+            log("${pName(link.player)} 发动 ${link.card.name} 的时点效果")
+            resolveSpell(link.player, link.card)
+        }
+        state = state.copy(pendingTriggers = state.pendingTriggers.toMutableList().also { it.removeAt(index) })
+    }
+
+    fun passAllTriggers() {
+        state = state.copy(pendingTriggers = emptyList())
+    }
+
+    fun hasPendingTriggers(): Boolean = state.pendingTriggers.isNotEmpty()
+
     fun startGame(deck0: List<Card>, deck1: List<Card>, extra0: List<Card>, extra1: List<Card>) {
         val rnd = Random.Default
         val p0 = PlayerState(lp = 4000, deck = deck0.shuffled(rnd), extraDeck = extra0)
@@ -143,6 +174,7 @@ class DuelEngine(var state: GameState = GameState()) {
         val card = ps.deck.first()
         replacePlayer(p, ps.copy(deck = ps.deck.drop(1), hand = ps.hand + card))
         log("${pName(p)} 抽卡")
+        checkTriggers(TriggerPoint.ON_ADD_TO_HAND, p xor 1)
     }
 
     private fun doNormalSummon(a: SummonNormalAction) {
@@ -161,6 +193,7 @@ class DuelEngine(var state: GameState = GameState()) {
         val nu = state.normalSummonUsed.toMutableList().also { it[a.player] = true }
         state = state.copy(normalSummonUsed = nu)
         log("${pName(a.player)} 通常召唤 ${card.name}")
+        checkTriggers(TriggerPoint.ON_SUMMON, a.player)
     }
 
     private fun doTributeSummon(a: SummonTributeAction) {
@@ -188,6 +221,7 @@ class DuelEngine(var state: GameState = GameState()) {
         placeMonster(a.player, a.zone, card, pos, summonedThisTurn = true)
         state = state.copy(normalSummonUsed = state.normalSummonUsed.toMutableList().also { it[a.player] = true })
         log("${pName(a.player)} 上级召唤 ${card.name}")
+        checkTriggers(TriggerPoint.ON_SUMMON, a.player)
     }
 
     private fun doActivateSpell(a: ActivateSpellAction) {
@@ -232,6 +266,7 @@ class DuelEngine(var state: GameState = GameState()) {
             it[a.player] = it[a.player].toMutableList().also { zz -> zz[a.zone] = zz[a.zone]!!.copy(faceUp = true) }
         })
         log("${pName(a.player)} 发动陷阱 ${fs.card.name}")
+        resolveSpell(a.player, fs.card)
         sendSpellToGY(a.player, a.zone)
     }
 
@@ -271,6 +306,7 @@ class DuelEngine(var state: GameState = GameState()) {
     private fun doAttack(a: AttackAction) {
         val attacker = state.monsterZones[a.player][a.attackerZone] ?: return
         if (!attacker.canAttack) return
+        checkTriggers(TriggerPoint.ON_ATTACK_DECLARE, a.targetPlayer)
         triggerOpponentTraps(a.player, a)
         if (state.winner != -1) return
         val atk = state.monsterZones[a.player][a.attackerZone] ?: return
@@ -372,6 +408,7 @@ class DuelEngine(var state: GameState = GameState()) {
                 popExtra(a.player, a.fromExtraIndex)
                 placeMonster(a.player, a.zone, extra, Position.ATTACK, summonedThisTurn = false)
                 log("${pName(a.player)} 融合召唤 ${extra.name}")
+                checkTriggers(TriggerPoint.ON_SUMMON, a.player)
             }
             SummonKind.SYNCHRO -> {
                 val extra = ps.extraDeck.getOrNull(a.fromExtraIndex) ?: return
@@ -382,6 +419,7 @@ class DuelEngine(var state: GameState = GameState()) {
                 popExtra(a.player, a.fromExtraIndex)
                 placeMonster(a.player, a.zone, extra, Position.ATTACK, summonedThisTurn = false)
                 log("${pName(a.player)} 同调召唤 ${extra.name}")
+                checkTriggers(TriggerPoint.ON_SUMMON, a.player)
             }
             SummonKind.XYZ -> {
                 val extra = ps.extraDeck.getOrNull(a.fromExtraIndex) ?: return
@@ -392,6 +430,7 @@ class DuelEngine(var state: GameState = GameState()) {
                 placeMonster(a.player, a.zone, extra, Position.ATTACK, summonedThisTurn = false, overlay = mats)
                 removeMaterials(a.player, a.materialHandIndices, a.materialFieldZones)
                 log("${pName(a.player)} 超量召唤 ${extra.name}")
+                checkTriggers(TriggerPoint.ON_SUMMON, a.player)
             }
             SummonKind.LINK -> {
                 val extra = ps.extraDeck.getOrNull(a.fromExtraIndex) ?: return
@@ -402,10 +441,11 @@ class DuelEngine(var state: GameState = GameState()) {
                 popExtra(a.player, a.fromExtraIndex)
                 placeMonster(a.player, a.zone, extra, Position.ATTACK, summonedThisTurn = false)
                 log("${pName(a.player)} 连接召唤 ${extra.name}")
+                checkTriggers(TriggerPoint.ON_SUMMON, a.player)
             }
             SummonKind.PENDULUM -> {
                 val scales = state.players[a.player].pendulumZone.mapNotNull { it.monster?.pendulumScale }
-                if (scaled.size < 2) return
+                if (scales.size < 2) return
                 val lo = scales.minOrNull()!!; val hi = scales.maxOrNull()!!
                 val card = if (a.fromHandIndex >= 0) ps.hand.getOrNull(a.fromHandIndex) else null
                     ?: ps.extraDeck.getOrNull(a.fromExtraIndex)
@@ -420,6 +460,7 @@ class DuelEngine(var state: GameState = GameState()) {
                 }
                 placeMonster(a.player, a.zone, card!!, Position.ATTACK, summonedThisTurn = true)
                 log("${pName(a.player)} 灵摆召唤 ${card.name}")
+                checkTriggers(TriggerPoint.ON_SUMMON, a.player)
             }
             else -> return
         }
@@ -471,6 +512,7 @@ class DuelEngine(var state: GameState = GameState()) {
             state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[p] = it[p].toMutableList().also { zz -> zz[z] = m.copy(summonedThisTurn = false, changedThisTurn = false) } })
         }
         doDraw(next)
+        checkTriggers(TriggerPoint.ON_TURN_START, next)
         log("==== ${pName(next)} 的回合 ====")
         return state
     }
