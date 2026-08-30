@@ -22,15 +22,22 @@ class DuelViewModel : ViewModel() {
     var passTo = mutableStateOf(0)
     var netError = mutableStateOf("")
 
+    // 财前葵形态与技能（技能互通）
+    var useAoi = mutableStateOf(false)
+    var selectedSkin = mutableStateOf(Skin.BLUE_ANGEL)
+    var selectedSkill = mutableStateOf(Aoi.skills.first())
+
     private var net: LanConnection? = null
+
+    private fun deckForPlayer0(): Pair<List<Card>, List<Card>> =
+        if (useAoi.value) Aoi.deckFor(selectedSkin.value) else (CardDatabase.defaultDeck() to CardDatabase.defaultExtraDeck())
 
     fun start(mode: Mode) {
         this.mode = mode
         engine = DuelEngine()
-        engine.startGame(
-            CardDatabase.defaultDeck(), CardDatabase.defaultDeck(),
-            CardDatabase.defaultExtraDeck(), CardDatabase.defaultExtraDeck()
-        )
+        val (d0, e0) = deckForPlayer0()
+        engine.startGame(d0, CardDatabase.defaultDeck(), e0, CardDatabase.defaultExtraDeck())
+        if (useAoi.value) applySkillSetup()
         viewPlayer = 0
         localPlayer = 0
         clearSelection()
@@ -38,6 +45,11 @@ class DuelViewModel : ViewModel() {
         passOverlay.value = false
         state.value = engine.state
         if (mode == Mode.AI) maybeRunAi()
+    }
+
+    private fun applySkillSetup() {
+        val extra = Aoi.applySkillSetup(selectedSkill.value, engine.state.players[0].extraDeck)
+        engine.state = engine.state.copy(players = engine.state.players.toMutableList().also { it[0] = it[0].copy(extraDeck = extra) })
     }
 
     fun startNet(isHost: Boolean, host: String = "", port: Int = 8765) {
@@ -59,10 +71,9 @@ class DuelViewModel : ViewModel() {
         net!!.onConnected = {
             if (isHost) {
                 engine = DuelEngine()
-                engine.startGame(
-                    CardDatabase.defaultDeck(), CardDatabase.defaultDeck(),
-                    CardDatabase.defaultExtraDeck(), CardDatabase.defaultExtraDeck()
-                )
+                val (d0, e0) = deckForPlayer0()
+                engine.startGame(d0, CardDatabase.defaultDeck(), e0, CardDatabase.defaultExtraDeck())
+                if (useAoi.value) applySkillSetup()
                 state.value = engine.state
                 net!!.sendState(engine.state)
             }
