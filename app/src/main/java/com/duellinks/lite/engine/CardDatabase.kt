@@ -15,7 +15,7 @@ object CardDatabase {
 
     private fun mon(
         id: String, name: String, level: Int?, rank: Int?, link: Int?,
-        atk: Int, def: Int?, attr: Attribute, race: Race, kind: SummonKind = NORMAL,
+        atk: Int, def: Int?, attr: Attribute, race: Race, kind: SummonKind = SummonKind.NORMAL,
         tuner: Boolean = false, pendScale: Int? = null,
         arrows: List<LinkArrow> = emptyList(), tags: List<EffectTag> = emptyList(),
         materials: List<String> = emptyList(), text: String = "", image: String? = null
@@ -55,24 +55,24 @@ object CardDatabase {
         mon("id_tune2", "调整幼龙", 2, null, null, 0, 0, WIND, DRAGON, tuner = true, text = "等级2调整。"),
 
         // ---- Synchro monsters ----
-        mon("44508094", "星尘龙", 8, null, null, 2500, 2000, LIGHT, DRAGON, kind = SYNCHRO,
+        mon("44508094", "星尘龙", 8, null, null, 2500, 2000, LIGHT, DRAGON, kind = SummonKind.SYNCHRO,
             materials = listOf("调整+1只以上非调整"), image = IMG + "44508094.jpg",
             text = "同调：调整+1只以上非调整。"),
-        mon("id_junkwarrior", "废品战士", 5, null, null, 2300, 1500, DARK, WARRIOR, kind = SYNCHRO,
+        mon("id_junkwarrior", "废品战士", 5, null, null, 2300, 1500, DARK, WARRIOR, kind = SummonKind.SYNCHRO,
             materials = listOf("调整+1只以上非调整"), text = "同调：调整+1只以上非调整。"),
 
         // ---- Xyz monsters ----
-        mon("84013237", "No.39 希望皇霍普", null, 4, null, 2500, 2000, LIGHT, WARRIOR, kind = XYZ,
+        mon("84013237", "No.39 希望皇霍普", null, 4, null, 2500, 2000, LIGHT, WARRIOR, kind = SummonKind.XYZ,
             materials = listOf("等级4怪兽x2"), image = IMG + "84013237.jpg",
             text = "超量：等级4怪兽x2。"),
-        mon("id_leviathan", "No.17 海恶龙", null, 4, null, 2000, 0, WATER, SEASERPENT, kind = XYZ,
+        mon("id_leviathan", "No.17 海恶龙", null, 4, null, 2000, 0, WATER, SEASERPENT, kind = SummonKind.XYZ,
             materials = listOf("等级4怪兽x2"), text = "超量：等级4怪兽x2。"),
 
         // ---- Link monsters ----
-        mon("91968023", "连接蜘蛛", null, null, 2, 1000, null, EARTH, CYBERSE, kind = LINK,
+        mon("91968023", "连接蜘蛛", null, null, 2, 1000, null, EARTH, CYBERSE, kind = SummonKind.LINK,
             arrows = listOf(BOTTOMLEFT, BOTTOMRIGHT), image = IMG + "91968023.jpg",
             text = "连接2：通常怪兽1只。", materials = listOf("通常怪兽1只")),
-        mon("id_decodetalker", "解码语者", null, null, 3, 2300, null, DARK, CYBERSE, kind = LINK,
+        mon("id_decodetalker", "解码语者", null, null, 3, 2300, null, DARK, CYBERSE, kind = SummonKind.LINK,
             arrows = listOf(LEFT, BOTTOM, RIGHT), text = "连接3：效果怪兽2只以上。",
             materials = listOf("效果怪兽2只以上")),
 
@@ -85,36 +85,35 @@ object CardDatabase {
             text = "灵摆刻度1。"),
 
         // ---- Fusion monsters ----
-        mon("id_blueeyesultimate", "青眼究极龙", 12, null, null, 4500, 3800, LIGHT, DRAGON, kind = FUSION,
+        mon("id_blueeyesultimate", "青眼究极龙", 12, null, null, 4500, 3800, LIGHT, DRAGON, kind = SummonKind.FUSION,
             materials = listOf("青眼白龙", "青眼白龙", "青眼白龙"), text = "融合：青眼白龙x3。"),
-        mon("id_darkmagiciangirl", "黑魔术少女", 6, null, null, 2000, 1700, DARK, SPELLCASTER, kind = FUSION,
+        mon("id_darkmagiciangirl", "黑魔术少女", 6, null, null, 2000, 1700, DARK, SPELLCASTER, kind = SummonKind.FUSION,
             materials = listOf("黑魔术师", "库里波"), text = "融合：黑魔术师+库里波。"),
 
         // ---- Spells ----
-        spell("24094653", "融合", NORMAL, text = "从手牌/场上将融合素材送墓，从额外卡组融合召唤。", image = IMG + "24094653.jpg"),
-        spell("83764718", "死者苏生", NORMAL, tags = listOf(REVIVE_ONE),
+        spell("24094653", "融合", SpellType.NORMAL, text = "从手牌/场上将融合素材送墓，从额外卡组融合召唤。", image = IMG + "24094653.jpg"),
+        spell("83764718", "死者苏生", SpellType.NORMAL, tags = listOf(REVIVE_ONE),
             text = "复活任意一方墓地的1只怪兽。", image = IMG + "83764718.jpg"),
-        spell("53129443", "黑洞", NORMAL, tags = listOf(DESTROY_ALL_MONSTERS),
+        spell("53129443", "黑洞", SpellType.NORMAL, tags = listOf(DESTROY_ALL_MONSTERS),
             text = "破坏双方场上所有怪兽。", image = IMG + "53129443.jpg"),
-        spell("12580477", "雷击", NORMAL, tags = listOf(DESTROY_ALL_MONSTERS),
+        spell("12580477", "雷击", SpellType.NORMAL, tags = listOf(DESTROY_ALL_MONSTERS),
             text = "破坏对方场上所有怪兽。", image = IMG + "12580477.jpg"),
-        spell("55144522", "强欲之壶", NORMAL, tags = listOf(DRAW_2),
+        spell("55144522", "强欲之壶", SpellType.NORMAL, tags = listOf(DRAW_2),
             text = "从卡组抽2张。", image = IMG + "55144522.jpg"),
-        spell("05318639", "旋风", QUICKPLAY, tags = listOf(POP_SPELL_TRAP),
+        spell("05318639", "旋风", SpellType.QUICKPLAY, tags = listOf(POP_SPELL_TRAP),
             text = "破坏场上1张魔法/陷阱卡。", image = IMG + "05318639.jpg"),
-        spell("id_raigeki", "雷击·破", NORMAL, tags = listOf(BURN_500), text = "给对手500点伤害。"),
+        spell("id_raigeki", "雷击·破", SpellType.NORMAL, tags = listOf(BURN_500), text = "给对手500点伤害。"),
 
         // ---- Traps ----
-        trap("44095762", "神圣防护罩-反射镜力-", NORMAL,
+        trap("44095762", "神圣防护罩-反射镜力-", TrapType.NORMAL,
             text = "对手攻击宣言时，破坏对手所有攻击表示怪兽。", image = IMG + "44095762.jpg"),
-        trap("04206964", "落穴", NORMAL,
+        trap("04206964", "落穴", TrapType.NORMAL,
             text = "对方召唤攻击力1000以上的怪兽时将其破坏。", image = IMG + "04206964.jpg"),
-        trap("id_drain", "吸收护盾", NORMAL, text = "无效1次攻击并回复LP。")
+        trap("id_drain", "吸收护盾", TrapType.NORMAL, text = "无效1次攻击并回复LP。")
     )
 
     private fun byId(id: String) = all.first { it.id == id }
 
-    // 用官方 API 返回的数据补全卡文与卡图（离线回落到内置 text/imageUrl）。
     fun enrich(data: Map<String, Pair<String, String>>) {
         all = all.map { c ->
             data[c.name]?.let { (t, u) -> c.copy(text = t, imageUrl = c.imageUrl ?: u) } ?: c
