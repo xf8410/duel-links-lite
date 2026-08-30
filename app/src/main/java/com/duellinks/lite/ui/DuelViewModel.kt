@@ -121,6 +121,16 @@ class DuelViewModel : ViewModel() {
         }
     }
 
+    fun resolveTrigger(index: Int, activate: Boolean) {
+        engine.resolveTrigger(index, activate)
+        state.value = engine.state
+    }
+
+    fun passAllTriggers() {
+        engine.passAllTriggers()
+        state.value = engine.state
+    }
+
     fun dismissPass() {
         viewPlayer = passTo.value
         passOverlay.value = false

@@ -59,7 +59,6 @@ fun MenuScreen(vm: DuelViewModel) {
                     )
                 }
             }
-            // 技能三形态共享，解锁形态即可装备，不限制
             Text("技能（三形态共享）", color = Color.Gray, fontSize = 12.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
                 Aoi.skills.forEach { sk ->
@@ -101,10 +100,39 @@ fun DuelScreen(vm: DuelViewModel) {
         ActionBar(vm)
     }
 
+    if (st.pendingTriggers.isNotEmpty()) TriggerDialog(vm)
     if (st.winner != -1) WinnerOverlay(vm)
     if (vm.passOverlay.value) PassOverlay(vm)
     if (vm.showLog.value) LogOverlay(vm, { vm.showLog.value = false })
     if (showSpecial) SpecialDialog(vm) { showSpecial = false }
+}
+
+@Composable
+fun TriggerDialog(vm: DuelViewModel) {
+    val triggers = vm.state.value.pendingTriggers
+    if (triggers.isEmpty()) return
+    val link = triggers.first()
+    val isMine = link.player == vm.viewPlayer
+    AlertDialog(
+        onDismissRequest = { },
+        title = { Text("时点触发", color = Color.Yellow) },
+        text = {
+            Column {
+                Text(
+                    "${if (isMine) "你的" else "对手的"} ${link.card.name} 效果可以发动",
+                    color = Color.White, fontSize = 13.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(link.card.text, color = Color.Gray, fontSize = 11.sp)
+                if (triggers.size > 1) {
+                    Spacer(Modifier.height(4.dp))
+                    Text("还有 ${triggers.size - 1} 个待处理触发", color = Color.Yellow, fontSize = 10.sp)
+                }
+            }
+        },
+        confirmButton = { Button(onClick = { vm.resolveTrigger(0, true) }) { Text("发动") } },
+        dismissButton = { Button(onClick = { vm.resolveTrigger(0, false) }) { Text("不发动") } }
+    )
 }
 
 @Composable
