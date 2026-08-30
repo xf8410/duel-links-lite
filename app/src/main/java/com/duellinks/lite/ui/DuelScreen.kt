@@ -50,7 +50,6 @@ fun DuelScreen(vm: DuelViewModel) {
     val st = vm.state.value
     val op = vm.viewPlayer xor 1
     var showSpecial by remember { mutableStateOf(false) }
-    var showLog by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().padding(4.dp)) {
         PlayerInfo(st, op, vm)
@@ -60,7 +59,7 @@ fun DuelScreen(vm: DuelViewModel) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
             for (z in 0..2) MonsterZone(vm, op, z)
         }
-        Controls(vm) { showSpecial = true; showLog = true }
+        Controls(vm) { showSpecial = true }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
             for (z in 0..2) MonsterZone(vm, vm.viewPlayer, z)
         }
@@ -76,7 +75,6 @@ fun DuelScreen(vm: DuelViewModel) {
     if (vm.passOverlay.value) PassOverlay(vm)
     if (vm.showLog.value) LogOverlay(vm, { vm.showLog.value = false })
     if (showSpecial) SpecialDialog(vm) { showSpecial = false }
-    if (showLog) {} // placeholder to keep state; real log via overlay
 }
 
 @Composable
@@ -159,10 +157,13 @@ fun Controls(vm: DuelViewModel, onSpecial: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Text("回合${st.turnCount} · ${if (st.turn == vm.viewPlayer) "你的" else "对手"}回合 · ${st.phase}", color = Color.White, fontSize = 12.sp, modifier = Modifier.weight(1f))
+        Text(
+            "回合${st.turnCount} · ${if (st.turn == vm.viewPlayer) "你的" else "对手"}回合 · ${st.phase}",
+            color = Color.White, fontSize = 12.sp, modifier = Modifier.weight(1f)
+        )
         Button(onClick = onSpecial, enabled = vm.isInteractive()) { Text("特殊召唤", fontSize = 11.sp) }
         Button(onClick = { vm.showLog.value = true }) { Text("日志", fontSize = 11.sp) }
-        Button(onClick = { vm.humanNextPhase() }, enabled = vm.isInteractive()) { Text("结束阶段", fontSize = 11.sp) }
+        Button(onClick = { vm.humanNextPhase() }, enabled = vm.isInteractive()) { Text("下一阶段", fontSize = 11.sp) }
         Button(onClick = { vm.humanSurrender() }, enabled = vm.isInteractive()) { Text("投降", fontSize = 11.sp) }
     }
 }
@@ -216,7 +217,11 @@ fun ActionBar(vm: DuelViewModel) {
         }
     } else if (vm.attackMode.value) {
         Row(Modifier.fillMaxWidth().padding(2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("选择攻击目标：点击对手怪兽或场地", color = Color.Yellow, fontSize = 12.sp, modifier = Modifier.align(Alignment.CenterVertically))
+            Text(
+                "选择攻击目标：点击对手怪兽或场地",
+                color = Color.Yellow, fontSize = 12.sp,
+                modifier = Modifier.align(Alignment.CenterVertically)
+            )
             Button(onClick = { vm.clearSelection() }) { Text("取消", fontSize = 11.sp) }
         }
     }
