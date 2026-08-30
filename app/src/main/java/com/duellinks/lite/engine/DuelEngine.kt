@@ -29,11 +29,7 @@ class DuelEngine(var state: GameState = GameState()) {
     private fun setMonsterPos(owner: Int, zone: Int, pos: Position, changedThisTurn: Boolean, canAttack: Boolean) {
         val m = state.monsterZones[owner][zone] ?: return
         val nm = m.copy(position = pos, changedThisTurn = changedThisTurn, canAttack = canAttack)
-        val z = state.monsterZones.toMutableList()
-        val pz = z[owner].toMutableList()
-        pz[zone] = nm
-        z[owner] = pz
-        state = state.copy(monsterZones = z)
+        state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[owner] = it[owner].toMutableList().also { zz -> zz[zone] = nm } })
     }
 
     private fun placeSpell(owner: Int, zone: Int, card: Card, faceUp: Boolean) {
@@ -47,11 +43,7 @@ class DuelEngine(var state: GameState = GameState()) {
 
     private fun sendSpellToGY(owner: Int, zone: Int) {
         val fs = state.spellZones[owner][zone] ?: return
-        val z = state.spellZones.toMutableList()
-        val pz = z[owner].toMutableList()
-        pz[zone] = null
-        z[owner] = pz
-        state = state.copy(spellZones = z)
+        state = state.copy(spellZones = state.spellZones.toMutableList().also { it[owner] = it[owner].toMutableList().also { zz -> zz[zone] = null } })
         val ps = state.players[owner]
         replacePlayer(owner, ps.copy(graveyard = ps.graveyard + fs.card))
     }
@@ -70,31 +62,27 @@ class DuelEngine(var state: GameState = GameState()) {
 
     private fun destroyMonster(player: Int, zone: Int) {
         val m = state.monsterZones[player][zone] ?: return
-        val z = state.monsterZones.toMutableList()
-        val pz = z[player].toMutableList()
-        pz[zone] = null
-        z[player] = pz
-        state = state.copy(monsterZones = z)
+        state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[player] = it[player].toMutableList().also { zz -> zz[zone] = null } })
         val ps = state.players[player]
         replacePlayer(player, ps.copy(graveyard = ps.graveyard + m.card))
         log("${m.card.name} 被破坏")
     }
 
     private fun destroyAllMonsters() {
-        for (p in 0..1) for (z in 0..2) {
+        for (p in 0..1) for (z in 0..4) {
             if (state.monsterZones[p][z] != null) destroyMonster(p, z)
         }
     }
 
     private fun destroyAllAttackMonsters(p: Int) {
-        for (z in 0..2) {
+        for (z in 0..4) {
             val m = state.monsterZones[p][z]
             if (m != null && m.position == Position.ATTACK) destroyMonster(p, z)
         }
     }
 
     private fun popSpellTrap(enemy: Int) {
-        for (z in 0..2) {
+        for (z in 0..4) {
             val fs = state.spellZones[enemy][z]
             if (fs != null && fs.faceUp) { sendSpellToGY(enemy, z); return }
         }
@@ -106,7 +94,7 @@ class DuelEngine(var state: GameState = GameState()) {
             val idx = gy.indexOfFirst { it.type == CardType.MONSTER }
             if (idx >= 0) {
                 val card = gy[idx]
-                val zone = (0..2).firstOrNull { state.monsterZones[player][it] == null } ?: return
+                val zone = (0..4).firstOrNull { state.monsterZones[player][it] == null } ?: return
                 val ps = state.players[src]
                 replacePlayer(src, ps.copy(graveyard = ps.graveyard.toMutableList().also { it.removeAt(idx) }))
                 placeMonster(player, zone, card, Position.ATTACK, summonedThisTurn = false)
@@ -122,8 +110,8 @@ class DuelEngine(var state: GameState = GameState()) {
         val p1 = PlayerState(lp = 4000, deck = deck1.shuffled(rnd), extraDeck = extra1)
         state = GameState(
             players = listOf(p0, p1),
-            monsterZones = List(2) { List(3) { null } },
-            spellZones = List(2) { List(3) { null } },
+            monsterZones = List(2) { List(5) { null } },
+            spellZones = List(2) { List(5) { null } },
             turn = 0, phase = Phase.MAIN1, turnCount = 1,
             normalSummonUsed = listOf(false, false),
             log = listOf("==== ${pName(0)} 先攻 ====")
@@ -243,7 +231,7 @@ class DuelEngine(var state: GameState = GameState()) {
         val fs = state.spellZones[a.player][a.zone] ?: return
         if (fs.faceUp || fs.card.type != CardType.TRAP) return
         state = state.copy(spellZones = state.spellZones.toMutableList().also {
-            it[a.player] = it[a.player].toMutableList().also { z -> z[a.zone] = z[a.zone]!!.copy(faceUp = true) }
+            it[a.player] = it[a.player].toMutableList().also { zz -> zz[a.zone] = zz[a.zone]!!.copy(faceUp = true) }
         })
         log("${pName(a.player)} 发动陷阱 ${fs.card.name}")
         sendSpellToGY(a.player, a.zone)
@@ -257,15 +245,15 @@ class DuelEngine(var state: GameState = GameState()) {
                 EffectTag.DESTROY_ALL_MONSTERS -> destroyAllMonsters()
                 EffectTag.DESTROY_ONE_MONSTER -> {
                     val enemy = 1 - player
-                    for (z in 0..2) if (state.monsterZones[enemy][z] != null) { destroyMonster(enemy, z); break }
+                    for (z in 0..4) if (state.monsterZones[enemy][z] != null) { destroyMonster(enemy, z); break }
                 }
                 EffectTag.BURN_500 -> burn(1 - player, 500)
                 EffectTag.BUFF_SELF_500 -> {
-                    for (z in 0..2) {
+                    for (z in 0..4) {
                         val m = state.monsterZones[player][z] ?: continue
                         val st = m.card.monster ?: continue
                         val boosted = m.card.copy(monster = st.copy(atk = st.atk + 500))
-                        state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[player] = it[player].toMutableList().also { z -> z[z] = m.copy(card = boosted) } })
+                        state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[player] = it[player].toMutableList().also { zz -> zz[z] = m.copy(card = boosted) } })
                     }
                 }
                 EffectTag.POP_SPELL_TRAP -> popSpellTrap(1 - player)
@@ -297,14 +285,11 @@ class DuelEngine(var state: GameState = GameState()) {
             if (def == null) burn(a.targetPlayer, aAtk)
             else resolveBattle(a.player, a.targetPlayer, a.attackerZone, a.targetZone)
         }
-        val z = state.monsterZones[a.player].toMutableList()
-        val m = z[a.attackerZone]!!.copy(canAttack = false)
-        z[a.attackerZone] = m
-        state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[a.player] = z })
+        state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[a.player] = it[a.player].toMutableList().also { zz -> zz[a.attackerZone] = zz[a.attackerZone]!!.copy(canAttack = false) } })
         checkWin()
     }
 
-    private fun hasFaceUpMonster(p: Int) = (0..2).any { state.monsterZones[p][it] != null }
+    private fun hasFaceUpMonster(p: Int) = (0..4).any { state.monsterZones[p][it] != null }
 
     private fun resolveBattle(atkP: Int, defP: Int, atkZ: Int, defZ: Int) {
         val atk = state.monsterZones[atkP][atkZ]!!
@@ -331,7 +316,7 @@ class DuelEngine(var state: GameState = GameState()) {
 
     private fun triggerOpponentTraps(atkPlayer: Int, a: AttackAction) {
         val defP = 1 - atkPlayer
-        for (z in 0..2) {
+        for (z in 0..4) {
             val fs = state.spellZones[defP][z] ?: continue
             if (fs.faceUp || fs.card.type != CardType.TRAP) continue
             when (fs.card.name) {
@@ -479,9 +464,9 @@ class DuelEngine(var state: GameState = GameState()) {
         val next = state.turn xor 1
         val newCount = if (next == 0) state.turnCount + 1 else state.turnCount
         state = state.copy(turn = next, phase = Phase.DRAW, turnCount = newCount, normalSummonUsed = listOf(false, false))
-        for (p in 0..1) for (z in 0..2) {
+        for (p in 0..1) for (z in 0..4) {
             val m = state.monsterZones[p][z] ?: continue
-            state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[p] = it[p].toMutableList().also { z -> z[z] = m.copy(summonedThisTurn = false, changedThisTurn = false) } })
+            state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[p] = it[p].toMutableList().also { zz -> zz[z] = m.copy(summonedThisTurn = false, changedThisTurn = false) } })
         }
         doDraw(next)
         log("==== ${pName(next)} 的回合 ====")
@@ -494,7 +479,7 @@ class DuelEngine(var state: GameState = GameState()) {
         }
     }
 
-    fun emptyMonsterZone(p: Int) = (0..2).firstOrNull { state.monsterZones[p][it] == null }
-    fun emptySpellZone(p: Int) = (0..2).firstOrNull { state.spellZones[p][it] == null }
+    fun emptyMonsterZone(p: Int) = (0..4).firstOrNull { state.monsterZones[p][it] == null }
+    fun emptySpellZone(p: Int) = (0..4).firstOrNull { state.spellZones[p][it] == null }
     fun canNormalSummon(p: Int) = !state.normalSummonUsed[p]
 }

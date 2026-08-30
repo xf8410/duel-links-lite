@@ -30,6 +30,9 @@ jobs:
           unzip -q gradle.zip
           echo "$PWD/gradle-8.5/bin" >> $GITHUB_PATH
 
+      - name: Run unit tests
+        run: gradle testDebugUnitTest --no-daemon --stacktrace
+
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon --stacktrace
 
