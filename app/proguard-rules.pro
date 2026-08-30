@@ -1,0 +1,4 @@
+-keepattributes *Annotation*, InnerClasses
+-dontnote kotlinx.serialization.**
+-keep,includedescriptorclasses class com.duellinks.lite.engine.**$$serializer { *; }
+-keepclassmembers class com.duellinks.lite.engine.** { *; }
