@@ -108,7 +108,8 @@ data class GameState(
     val turnCount: Int = 1,
     val winner: Int = -1,
     val normalSummonUsed: List<Boolean> = listOf(false, false),
-    val log: List<String> = emptyList()
+    val log: List<String> = emptyList(),
+    val skillFlags: Set<String> = emptySet()
 )
 
 @Serializable

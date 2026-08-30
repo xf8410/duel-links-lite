@@ -19,11 +19,7 @@ class DuelEngine(var state: GameState = GameState()) {
 
     private fun placeMonster(owner: Int, zone: Int, card: Card, pos: Position, summonedThisTurn: Boolean, overlay: List<Card> = emptyList()) {
         val fm = FieldMonster(card, pos, owner, canAttack = true, changedThisTurn = false, summonedThisTurn = summonedThisTurn, overlay = overlay)
-        val z = state.monsterZones.toMutableList()
-        val pz = z[owner].toMutableList()
-        pz[zone] = fm
-        z[owner] = pz
-        state = state.copy(monsterZones = z)
+        state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[owner] = it[owner].toMutableList().also { zz -> zz[zone] = fm } })
     }
 
     private fun setMonsterPos(owner: Int, zone: Int, pos: Position, changedThisTurn: Boolean, canAttack: Boolean) {
@@ -34,11 +30,7 @@ class DuelEngine(var state: GameState = GameState()) {
 
     private fun placeSpell(owner: Int, zone: Int, card: Card, faceUp: Boolean) {
         val fs = FieldSpellTrap(card, faceUp, owner)
-        val z = state.spellZones.toMutableList()
-        val pz = z[owner].toMutableList()
-        pz[zone] = fs
-        z[owner] = pz
-        state = state.copy(spellZones = z)
+        state = state.copy(spellZones = state.spellZones.toMutableList().also { it[owner] = it[owner].toMutableList().also { zz -> zz[zone] = fs } })
     }
 
     private fun sendSpellToGY(owner: Int, zone: Int) {
@@ -104,6 +96,11 @@ class DuelEngine(var state: GameState = GameState()) {
         }
     }
 
+    private fun waterOnlyOk(card: Card): Boolean {
+        if ("WATER_ONLY_SUMMON" !in state.skillFlags) return true
+        return card.monster?.attribute == Attribute.WATER
+    }
+
     fun startGame(deck0: List<Card>, deck1: List<Card>, extra0: List<Card>, extra1: List<Card>) {
         val rnd = Random.Default
         val p0 = PlayerState(lp = 4000, deck = deck0.shuffled(rnd), extraDeck = extra0)
@@ -156,6 +153,7 @@ class DuelEngine(var state: GameState = GameState()) {
         val lvl = card.monster?.level ?: 4
         if (lvl >= 5) return
         if (state.monsterZones[a.player][a.zone] != null) return
+        if (!waterOnlyOk(card)) { log("${pName(a.player)} 技能限制：只能召唤水属性怪兽"); return }
         val pos = if (a.set) Position.DEFENSE_FACEDOWN else Position.ATTACK
         placeMonster(a.player, a.zone, card, pos, summonedThisTurn = true)
         val newHand = ps.hand.toMutableList().also { it.removeAt(a.handIndex) }
@@ -174,6 +172,7 @@ class DuelEngine(var state: GameState = GameState()) {
         val need = when { lvl >= 7 -> 2; lvl >= 5 -> 1; else -> 0 }
         if (a.tributes.size != need) return
         if (state.monsterZones[a.player][a.zone] != null) return
+        if (!waterOnlyOk(card)) { log("${pName(a.player)} 技能限制：只能召唤水属性怪兽"); return }
         for (z in a.tributes) {
             val m = state.monsterZones[a.player][z]
             if (m == null || m.owner != a.player) return
@@ -181,8 +180,7 @@ class DuelEngine(var state: GameState = GameState()) {
         val sent = mutableListOf<Card>()
         val pz = state.monsterZones[a.player].toMutableList()
         for (z in a.tributes) { pz[z]?.let { sent.add(it.card) }; pz[z] = null }
-        val mz = state.monsterZones.toMutableList().also { it[a.player] = pz }
-        state = state.copy(monsterZones = mz)
+        state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[a.player] = pz })
         val newHand = ps.hand.toMutableList().also { it.removeAt(a.handIndex) }
         val ps2 = state.players[a.player].copy(hand = newHand, graveyard = state.players[a.player].graveyard + sent)
         replacePlayer(a.player, ps2)
@@ -337,7 +335,6 @@ class DuelEngine(var state: GameState = GameState()) {
         }
     }
 
-    // ---- Special summons (fusion / synchro / xyz / link / pendulum) ----
     private fun gatherMaterials(player: Int, handIdx: List<Int>, fieldZones: List<Int>): List<Card> {
         val ps = state.players[player]
         val cards = mutableListOf<Card>()
@@ -369,6 +366,7 @@ class DuelEngine(var state: GameState = GameState()) {
             SummonKind.FUSION -> {
                 val extra = ps.extraDeck.getOrNull(a.fromExtraIndex) ?: return
                 if (extra.kind != SummonKind.FUSION) return
+                if (!waterOnlyOk(extra)) { log("${pName(a.player)} 技能限制：只能召唤水属性怪兽"); return }
                 if (!matchFusion(extra, mats)) return
                 removeMaterials(a.player, a.materialHandIndices, a.materialFieldZones)
                 popExtra(a.player, a.fromExtraIndex)
@@ -378,6 +376,7 @@ class DuelEngine(var state: GameState = GameState()) {
             SummonKind.SYNCHRO -> {
                 val extra = ps.extraDeck.getOrNull(a.fromExtraIndex) ?: return
                 if (extra.kind != SummonKind.SYNCHRO) return
+                if (!waterOnlyOk(extra)) { log("${pName(a.player)} 技能限制：只能召唤水属性怪兽"); return }
                 if (!matchSynchro(extra, mats)) return
                 removeMaterials(a.player, a.materialHandIndices, a.materialFieldZones)
                 popExtra(a.player, a.fromExtraIndex)
@@ -387,6 +386,7 @@ class DuelEngine(var state: GameState = GameState()) {
             SummonKind.XYZ -> {
                 val extra = ps.extraDeck.getOrNull(a.fromExtraIndex) ?: return
                 if (extra.kind != SummonKind.XYZ) return
+                if (!waterOnlyOk(extra)) { log("${pName(a.player)} 技能限制：只能召唤水属性怪兽"); return }
                 if (!matchXyz(extra, mats)) return
                 popExtra(a.player, a.fromExtraIndex)
                 placeMonster(a.player, a.zone, extra, Position.ATTACK, summonedThisTurn = false, overlay = mats)
@@ -396,6 +396,7 @@ class DuelEngine(var state: GameState = GameState()) {
             SummonKind.LINK -> {
                 val extra = ps.extraDeck.getOrNull(a.fromExtraIndex) ?: return
                 if (extra.kind != SummonKind.LINK) return
+                if (!waterOnlyOk(extra)) { log("${pName(a.player)} 技能限制：只能召唤水属性怪兽"); return }
                 if (mats.isEmpty()) return
                 removeMaterials(a.player, a.materialHandIndices, a.materialFieldZones)
                 popExtra(a.player, a.fromExtraIndex)
@@ -404,12 +405,13 @@ class DuelEngine(var state: GameState = GameState()) {
             }
             SummonKind.PENDULUM -> {
                 val scales = state.players[a.player].pendulumZone.mapNotNull { it.monster?.pendulumScale }
-                if (scales.size < 2) return
+                if (scaled.size < 2) return
                 val lo = scales.minOrNull()!!; val hi = scales.maxOrNull()!!
                 val card = if (a.fromHandIndex >= 0) ps.hand.getOrNull(a.fromHandIndex) else null
                     ?: ps.extraDeck.getOrNull(a.fromExtraIndex)
                 val lvl = card?.monster?.level ?: return
                 if (lvl <= lo || lvl >= hi) return
+                if (!waterOnlyOk(card)) { log("${pName(a.player)} 技能限制：只能召唤水属性怪兽"); return }
                 if (a.fromHandIndex >= 0) {
                     val newHand = ps.hand.toMutableList().also { it.removeAt(a.fromHandIndex) }
                     replacePlayer(a.player, ps.copy(hand = newHand))
