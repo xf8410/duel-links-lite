@@ -9,35 +9,50 @@ import com.duellinks.lite.engine.SpellType.*
 import com.duellinks.lite.engine.SummonKind.*
 import com.duellinks.lite.engine.TrapType.*
 
-// 财前葵的三个角色形态：虽是不同"角色"，但技能池互通。
+// 财前葵的三个角色形态：虽是不同"角色"，但技能池互通（每个技能有"所需形态"）。
 enum class Skin(val label: String, val deckTag: String) {
     BLUE_ANGEL("蓝色天使", "trickstar"),
     BLUE_GIRL("蓝色女孩", "trickstar_plus"),
     BLUE_MAIDEN("蓝色少女和水灵儿", "marincess")
 }
 
-// 技能描述（共享技能池，任意形态可装）
+// 技能描述（严格按游戏文本）。requiredForm = 所需形态；setupExtra = 决斗开始时加入额外卡组的卡名。
 data class SkillMeta(
     val id: String,
     val label: String,
     val desc: String,
-    val setupExtra: List<String> = emptyList()   // 开局要加入额外卡组的卡名
+    val requiredForm: Skin,
+    val setupExtra: List<String> = emptyList()
 )
 
 object Aoi {
 
-    // 技能互通：三个技能任意形态通用。
     val skills: List<SkillMeta> = listOf(
-        SkillMeta("ocean_blue", "海洋母亲的深蓝",
-            "①我方水属性怪兽不会被对方卡效果破坏（海晶少女除外）②/③ 检索并特召海晶少女。",
-            setupExtra = listOf("海晶少女 奇迹心")),
-        SkillMeta("my_all", "我现在的全力！",
-            "①决斗开始时向额外卡组加入1只淘气仙星·蜀葵天使 ②第2回合后通常抽卡改为从卡组选光属性/天使加手。",
-            setupExtra = listOf("淘气仙星·蜀葵天使")),
-        SkillMeta("new_possibility", "水灵儿和我的全新可能性！",
-            "①向额外卡组加入海晶少女 魔泡大堡垒、海晶少女 珊瑚海葵 ②有连接怪兽时从墓地守备特召海晶少女。",
-            setupExtra = listOf("海晶少女 魔泡大堡垒", "海晶少女 珊瑚海葵"))
+        SkillMeta(
+            "my_all", "我现在的全力！",
+            "①决斗开始时发动：向额外卡组添加1只「淘气仙星·蜀葵天使」（至多4张）。" +
+                "②第2回合后、自己通常抽卡前可用1次：此回合的1张普通抽卡改为从卡组随机选择的天使族/光属性怪兽。",
+            requiredForm = Skin.BLUE_GIRL,
+            setupExtra = listOf("淘气仙星·蜀葵天使")
+        ),
+        SkillMeta(
+            "ocean_blue", "海洋母亲的深蓝",
+            "①我方只能召唤/特殊召唤水属性怪兽，「海晶少女」以外我方卡片效果向对手造成的效果伤害变为0。" +
+                "②展示手牌1只等级4「海晶少女」怪兽或1张「海晶少女」魔法卡：从卡组将2只「海晶少女」怪兽加入手牌，然后选我方1张手牌送墓或回卡组。" +
+                "③对手场上有怪兽、或我方场上有连接4怪兽时：从卡组将1张「海晶少女」魔法/陷阱加入手牌，然后可从额外卡组特召1只「海晶少女 奇迹心」。",
+            requiredForm = Skin.BLUE_MAIDEN,
+            setupExtra = emptyList()
+        ),
+        SkillMeta(
+            "new_possibility", "水灵儿和我的全新可能性！",
+            "①决斗开始时发动：向额外卡组各添加1只「海晶少女 魔泡大堡垒」「海晶少女 珊瑚海葵」（每种至多4张）。" +
+                "②我方场上有连接怪兽时可用1次：选我方墓地1只「海晶少女」怪兽以表侧守备特召到场上。",
+            requiredForm = Skin.BLUE_MAIDEN,
+            setupExtra = listOf("海晶少女 魔泡大堡垒", "海晶少女 珊瑚海葵")
+        )
     )
+
+    fun skillsFor(skin: Skin): List<SkillMeta> = skills.filter { it.requiredForm == skin }
 
     private fun mon(
         id: String, name: String, level: Int?, rank: Int?, link: Int?,
@@ -81,19 +96,15 @@ object Aoi {
 
     fun byName(name: String): Card? = allCards().firstOrNull { it.name == name }
 
-    private fun deck(tag: String, main: List<Card>, extra: List<Card>): Pair<List<Card>, List<Card>> {
-        // 不足20张时按需补满
-        val filled = main + List((20 - main.size).coerceAtLeast(0)) { main.first() }
-        return filled to extra
-    }
+    private fun fill(main: List<Card>): List<Card> =
+        main + List((20 - main.size).coerceAtLeast(0)) { main.first() }
 
     fun deckFor(skin: Skin): Pair<List<Card>, List<Card>> = when (skin.deckTag) {
-        "trickstar_plus" -> deck("trickstar_plus", trickstarCards.filter { it.type == MONSTER }.take(10), trickstarCards.filter { it.kind == SummonKind.LINK })
-        "marincess" -> deck("marincess", marincessCards.filter { it.type == MONSTER }.take(10), marincessCards.filter { it.kind == SummonKind.LINK })
-        else -> deck("trickstar", trickstarCards.filter { it.type == MONSTER }.take(10), trickstarCards.filter { it.kind == SummonKind.LINK })
+        "marincess" -> fill(marincessCards.filter { it.type == MONSTER }) to marincessCards.filter { it.kind == SummonKind.LINK }
+        else -> fill(trickstarCards.filter { it.type == MONSTER }) to trickstarCards.filter { it.kind == SummonKind.LINK }
     }
 
-    // 开局技能：把技能要求的卡加入我方额外卡组
+    // 开局技能：把技能要求的卡加入我方额外卡组（仅"决斗开始时发动"的技能有此项）
     fun applySkillSetup(skill: SkillMeta, extra: List<Card>): List<Card> {
         var e = extra
         for (name in skill.setupExtra) {
