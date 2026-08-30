@@ -54,23 +54,26 @@ fun MenuScreen(vm: DuelViewModel) {
                 Skin.entries.forEach { s ->
                     FilterChip(
                         selected = vm.selectedSkin.value == s,
-                        onClick = { vm.selectedSkin.value = s },
+                        onClick = { vm.setSkin(s) },
                         label = { Text(s.label, fontSize = 9.sp) }
                     )
                 }
             }
-            val skill = vm.selectedSkill.value
-            Text("技能（三形态互通）：${skill.label}", color = Color.Cyan, fontSize = 11.sp)
-            Text(skill.desc, color = Color.Gray, fontSize = 10.sp)
-            Text("技能", color = Color.Gray, fontSize = 12.sp)
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-                Aoi.skills.forEach { sk ->
-                    FilterChip(
-                        selected = vm.selectedSkill.value.id == sk.id,
-                        onClick = { vm.selectedSkill.value = sk },
-                        label = { Text(sk.label, fontSize = 9.sp) }
-                    )
+            val avail = Aoi.skillsFor(vm.selectedSkin.value)
+            Text("技能（互通，按所需形态）", color = Color.Gray, fontSize = 12.sp)
+            if (avail.isEmpty()) {
+                Text("该形态暂无已收录技能", color = Color.Gray, fontSize = 11.sp)
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                    avail.forEach { sk ->
+                        FilterChip(
+                            selected = vm.selectedSkill.value.id == sk.id,
+                            onClick = { vm.selectedSkill.value = sk },
+                            label = { Text(sk.label, fontSize = 9.sp) }
+                        )
+                    }
                 }
+                Text(vm.selectedSkill.value.desc, color = Color.Cyan, fontSize = 10.sp)
             }
         }
     }
