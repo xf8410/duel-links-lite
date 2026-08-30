@@ -242,7 +242,9 @@ class DuelEngine(var state: GameState = GameState()) {
     private fun doActivateTrap(a: ActivateTrapAction) {
         val fs = state.spellZones[a.player][a.zone] ?: return
         if (fs.faceUp || fs.card.type != CardType.TRAP) return
-        state = state.copy(spellZones = state.spellZones.toMutableList().also { it[a.player] = it[a.player].toMutableList().also { it[a.zone] = it[a.zone]!!.copy(faceUp = true) } })
+        state = state.copy(spellZones = state.spellZones.toMutableList().also {
+            it[a.player] = it[a.player].toMutableList().also { z -> z[a.zone] = z[a.zone]!!.copy(faceUp = true) }
+        })
         log("${pName(a.player)} 发动陷阱 ${fs.card.name}")
         sendSpellToGY(a.player, a.zone)
     }
@@ -263,7 +265,7 @@ class DuelEngine(var state: GameState = GameState()) {
                         val m = state.monsterZones[player][z] ?: continue
                         val st = m.card.monster ?: continue
                         val boosted = m.card.copy(monster = st.copy(atk = st.atk + 500))
-                        state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[player] = it[player].toMutableList().also { it[z] = m.copy(card = boosted) } })
+                        state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[player] = it[player].toMutableList().also { z -> z[z] = m.copy(card = boosted) } })
                     }
                 }
                 EffectTag.POP_SPELL_TRAP -> popSpellTrap(1 - player)
@@ -368,6 +370,12 @@ class DuelEngine(var state: GameState = GameState()) {
         state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[player] = pz })
     }
 
+    private fun popExtra(player: Int, index: Int) {
+        state = state.copy(players = state.players.toMutableList().also {
+            it[player] = it[player].copy(extraDeck = it[player].extraDeck.toMutableList().also { ex -> ex.removeAt(index) })
+        })
+    }
+
     private fun doSpecialSummon(a: SpecialSummonAction) {
         val ps = state.players[a.player]
         if (state.monsterZones[a.player][a.zone] != null) return
@@ -378,7 +386,7 @@ class DuelEngine(var state: GameState = GameState()) {
                 if (extra.kind != SummonKind.FUSION) return
                 if (!matchFusion(extra, mats)) return
                 removeMaterials(a.player, a.materialHandIndices, a.materialFieldZones)
-                state = state.copy(players = state.players.toMutableList().also { it[a.player] = state.players[a.player].copy(extraDeck = state.players[a.player].extraDeck.toMutableList().also { it.removeAt(a.fromExtraIndex) }) })
+                popExtra(a.player, a.fromExtraIndex)
                 placeMonster(a.player, a.zone, extra, Position.ATTACK, summonedThisTurn = false)
                 log("${pName(a.player)} 融合召唤 ${extra.name}")
             }
@@ -387,7 +395,7 @@ class DuelEngine(var state: GameState = GameState()) {
                 if (extra.kind != SummonKind.SYNCHRO) return
                 if (!matchSynchro(extra, mats)) return
                 removeMaterials(a.player, a.materialHandIndices, a.materialFieldZones)
-                state = state.copy(players = state.players.toMutableList().also { it[a.player] = state.players[a.player].copy(extraDeck = state.players[a.player].extraDeck.toMutableList().also { it.removeAt(a.fromExtraIndex) }) })
+                popExtra(a.player, a.fromExtraIndex)
                 placeMonster(a.player, a.zone, extra, Position.ATTACK, summonedThisTurn = false)
                 log("${pName(a.player)} 同调召唤 ${extra.name}")
             }
@@ -395,7 +403,7 @@ class DuelEngine(var state: GameState = GameState()) {
                 val extra = ps.extraDeck.getOrNull(a.fromExtraIndex) ?: return
                 if (extra.kind != SummonKind.XYZ) return
                 if (!matchXyz(extra, mats)) return
-                // overlay materials (keep them under the xyz monster)
+                popExtra(a.player, a.fromExtraIndex)
                 placeMonster(a.player, a.zone, extra, Position.ATTACK, summonedThisTurn = false, overlay = mats)
                 removeMaterials(a.player, a.materialHandIndices, a.materialFieldZones)
                 log("${pName(a.player)} 超量召唤 ${extra.name}")
@@ -405,7 +413,7 @@ class DuelEngine(var state: GameState = GameState()) {
                 if (extra.kind != SummonKind.LINK) return
                 if (mats.isEmpty()) return
                 removeMaterials(a.player, a.materialHandIndices, a.materialFieldZones)
-                state = state.copy(players = state.players.toMutableList().also { it[a.player] = state.players[a.player].copy(extraDeck = state.players[a.player].extraDeck.toMutableList().also { it.removeAt(a.fromExtraIndex) }) })
+                popExtra(a.player, a.fromExtraIndex)
                 placeMonster(a.player, a.zone, extra, Position.ATTACK, summonedThisTurn = false)
                 log("${pName(a.player)} 连接召唤 ${extra.name}")
             }
@@ -421,7 +429,7 @@ class DuelEngine(var state: GameState = GameState()) {
                     val newHand = ps.hand.toMutableList().also { it.removeAt(a.fromHandIndex) }
                     replacePlayer(a.player, ps.copy(hand = newHand))
                 } else {
-                    state = state.copy(players = state.players.toMutableList().also { it[a.player] = state.players[a.player].copy(extraDeck = state.players[a.player].extraDeck.toMutableList().also { it.removeAt(a.fromExtraIndex) }) })
+                    popExtra(a.player, a.fromExtraIndex)
                 }
                 placeMonster(a.player, a.zone, card!!, Position.ATTACK, summonedThisTurn = true)
                 log("${pName(a.player)} 灵摆召唤 ${card.name}")
@@ -473,7 +481,7 @@ class DuelEngine(var state: GameState = GameState()) {
         state = state.copy(turn = next, phase = Phase.DRAW, turnCount = newCount, normalSummonUsed = listOf(false, false))
         for (p in 0..1) for (z in 0..2) {
             val m = state.monsterZones[p][z] ?: continue
-            state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[p] = it[p].toMutableList().also { it[z] = m.copy(summonedThisTurn = false, changedThisTurn = false) } })
+            state = state.copy(monsterZones = state.monsterZones.toMutableList().also { it[p] = it[p].toMutableList().also { z -> z[z] = m.copy(summonedThisTurn = false, changedThisTurn = false) } })
         }
         doDraw(next)
         log("==== ${pName(next)} 的回合 ====")
@@ -486,7 +494,6 @@ class DuelEngine(var state: GameState = GameState()) {
         }
     }
 
-    // ---- Queries for UI / AI ----
     fun emptyMonsterZone(p: Int) = (0..2).firstOrNull { state.monsterZones[p][it] == null }
     fun emptySpellZone(p: Int) = (0..2).firstOrNull { state.spellZones[p][it] == null }
     fun canNormalSummon(p: Int) = !state.normalSummonUsed[p]
