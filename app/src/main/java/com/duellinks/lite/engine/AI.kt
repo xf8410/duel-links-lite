@@ -33,7 +33,7 @@ object AiController {
                 return true
             }
             val need = if (lvl >= 7) 2 else 1
-            val tributes = (0..2).filter {
+            val tributes = (0..4).filter {
                 val m = engine.state.monsterZones[player][it]
                 m != null && m.owner == player
             }.take(need)
@@ -68,11 +68,11 @@ object AiController {
     private fun tryAttack(engine: DuelEngine, player: Int): Boolean {
         val st = engine.state
         val enemy = player xor 1
-        val atkZone = (0..2).firstOrNull { st.monsterZones[player][it]?.canAttack == true } ?: return false
+        val atkZone = (0..4).firstOrNull { st.monsterZones[player][it]?.canAttack == true } ?: return false
         val aAtk = st.monsterZones[player][atkZone]!!.card.monster?.atk ?: 0
         var target = -1
         var best = Int.MAX_VALUE
-        for (z in 0..2) {
+        for (z in 0..4) {
             val m = st.monsterZones[enemy][z] ?: continue
             val eff = if (m.position == Position.ATTACK) m.card.monster?.atk ?: 0 else m.card.monster?.def ?: 0
             if (eff < aAtk && eff < best) { best = eff; target = z }
@@ -80,7 +80,7 @@ object AiController {
         return if (target >= 0) {
             engine.apply(AttackAction(player, atkZone, enemy, target))
             true
-        } else if ((0..2).none { st.monsterZones[enemy][it] != null }) {
+        } else if ((0..4).none { st.monsterZones[enemy][it] != null }) {
             engine.apply(AttackAction(player, atkZone, enemy, -1))
             true
         } else false
