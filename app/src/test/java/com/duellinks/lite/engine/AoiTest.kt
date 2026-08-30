@@ -8,11 +8,11 @@ class AoiTest {
 
     @Test
     fun skillSetupAddsMissingExtraDeckCards() {
-        val trickstarExtra = Aoi.deckFor(Skin.BLUE_ANGEL).second // 只有淘气仙星连接怪兽
-        val skill = Aoi.skills.first { it.id == "new_possibility" } // 加海晶少女卡
+        val trickstarExtra = Aoi.deckFor(Skin.BLUE_ANGEL).second
+        val skill = Aoi.skills.first { it.id == "new_possibility" }
         val after = Aoi.applySkillSetup(skill, trickstarExtra)
-        assertTrue(after.any { it.name == "海晶少女 魔泡大堡垒" })
-        assertTrue(after.any { it.name == "海晶少女 珊瑚海葵" })
+        assertTrue(after.any { it.name == "Marincess Great Bubble Reef" })
+        assertTrue(after.any { it.name == "Marincess Coral Anemone" })
     }
 
     @Test
@@ -26,8 +26,49 @@ class AoiTest {
         })
         val extraIdx = e.state.players[0].extraDeck.indexOfFirst { it.kind == SummonKind.LINK }
         val linkName = e.state.players[0].extraDeck[extraIdx].name
-        // 无额外怪兽区限制：放到主怪兽区 3（前5后5，0..4 都是主怪兽区）
         e.apply(SpecialSummonAction(0, SummonKind.LINK, 3, fromExtraIndex = extraIdx, materialHandIndices = listOf(0)))
         assertEquals(linkName, e.state.monsterZones[0][3]?.card?.name)
+    }
+
+    @Test
+    fun trickstarCardsHaveCorrectStats() {
+        val candina = Aoi.byName("Trickstar Candina")!!
+        assertEquals(1800, candina.monster?.atk)
+        assertEquals(400, candina.monster?.def)
+        assertEquals(4, candina.monster?.level)
+        assertEquals(LIGHT, candina.monster?.attribute)
+        assertEquals(FAIRY, candina.monster?.race)
+
+        val holly = Aoi.byName("Trickstar Holly Angel")!!
+        assertEquals(2000, holly.monster?.atk)
+        assertEquals(2, holly.monster?.link)
+        assertEquals(listOf(LinkArrow.BOTTOMLEFT, LinkArrow.BOTTOMRIGHT), holly.monster?.arrows)
+    }
+
+    @Test
+    fun marincessCardsHaveCorrectStats() {
+        val blueTang = Aoi.byName("Marincess Blue Tang")!!
+        assertEquals(1500, blueTang.monster?.atk)
+        assertEquals(1200, blueTang.monster?.def)
+        assertEquals(4, blueTang.monster?.level)
+        assertEquals(WATER, blueTang.monster?.attribute)
+        assertEquals(CYBERSE, blueTang.monster?.race)
+
+        val wonderHeart = Aoi.byName("Marincess Wonder Heart")!!
+        assertEquals(2400, wonderHeart.monster?.atk)
+        assertEquals(4, wonderHeart.monster?.link)
+        assertEquals(listOf(LinkArrow.LEFT, LinkArrow.RIGHT, LinkArrow.BOTTOMLEFT, LinkArrow.BOTTOMRIGHT), wonderHeart.monster?.arrows)
+    }
+
+    @Test
+    fun triggerPointsAreSetOnCards() {
+        val lycoris = Aoi.byName("Trickstar Lycoris")!!
+        assertEquals(TriggerPoint.ON_ADD_TO_HAND, lycoris.trigger)
+
+        val candina = Aoi.byName("Trickstar Candina")!!
+        assertEquals(TriggerPoint.ON_SUMMON, candina.trigger)
+
+        val wave = Aoi.byName("Marincess Wave")!!
+        assertEquals(TriggerPoint.ON_ATTACK_DECLARE, wave.trigger)
     }
 }
