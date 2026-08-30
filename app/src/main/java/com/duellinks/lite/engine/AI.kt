@@ -9,6 +9,7 @@ object AiController {
         var guard = 0
         while (engine.state.turn == player && engine.state.winner == -1 && guard < 80) {
             guard++
+            resolveTriggers(engine, player)
             when (engine.state.phase) {
                 MAIN1 -> if (!trySummon(engine, player) && !trySpell(engine, player) && !trySet(engine, player)) {
                     engine.apply(NextPhaseAction(player))
@@ -17,6 +18,17 @@ object AiController {
                 MAIN2 -> engine.apply(NextPhaseAction(player))
                 else -> engine.apply(NextPhaseAction(player))
             }
+        }
+        resolveTriggers(engine, player)
+    }
+
+    private fun resolveTriggers(engine: DuelEngine, player: Int) {
+        var guard = 0
+        while (engine.state.pendingTriggers.isNotEmpty() && guard < 20) {
+            guard++
+            val link = engine.state.pendingTriggers.first()
+            val activate = link.player == player
+            engine.resolveTrigger(0, activate)
         }
     }
 
