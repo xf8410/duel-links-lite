@@ -101,8 +101,8 @@ data class PlayerState(
 @Serializable
 data class GameState(
     val players: List<PlayerState> = List(2) { PlayerState() },
-    val monsterZones: List<List<FieldMonster?>> = List(2) { List(3) { null } },
-    val spellZones: List<List<FieldSpellTrap?>> = List(2) { List(3) { null } },
+    val monsterZones: List<List<FieldMonster?>> = List(2) { List(5) { null } },
+    val spellZones: List<List<FieldSpellTrap?>> = List(2) { List(5) { null } },
     val turn: Int = 0,
     val phase: Phase = Phase.DRAW,
     val turnCount: Int = 1,
