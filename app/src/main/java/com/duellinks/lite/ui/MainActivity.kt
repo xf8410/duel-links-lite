@@ -14,12 +14,12 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 启动即尝试从 YGOPRODeck 拉取官方卡文/卡图，失败则沿用内置数据。
+        // 启动即尝试从 YGOPRODeck 拉取官方卡数据（数值/卡文/卡图），失败则沿用内置数据。
         lifecycleScope.launch(Dispatchers.IO) {
             val data = CardApi.fetchAll(cacheDir)
             CardDatabase.enrich(data)
-            // 财前葵（淘气仙星/海晶少女）也统一用 API 官方卡文/卡图，保证文字一字不差。
-            Aoi.enrich(data)
+            // 财前葵（淘气仙星/海晶少女）用 API 完整卡数据，保证数值与卡文一字不差。
+            Aoi.setApi(data)
         }
         setContent { DuelApp() }
     }
