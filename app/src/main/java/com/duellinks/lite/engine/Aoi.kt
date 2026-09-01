@@ -52,7 +52,7 @@ object Aoi {
     private var apiById: Map<String, ApiFullCard> = emptyMap()
 
     fun setApi(cards: Map<String, ApiFullCard>) {
-        apiById = cards
+        apiById = cards.values.associateBy { it.id.toString() }
     }
 
     // YGOPRODeck API 只提供卡文文本、不提供结构化"效果"，所以游戏内的简化效果标签/触发点/连接素材仍需手工标注。
@@ -110,7 +110,6 @@ object Aoi {
         "47910940" to CardFx(listOf(DRAW_2), ON_TURN_START, listOf("WATER"))
     )
 
-    // 离线兜底：仅提供数值与占位（卡文运行时用 API 覆盖）。结构与 API 一致。
     private val trickstarIds = listOf(
         "61283655", "35199656", "98700941", "22219822", "86825114", "91505214",
         "59604521", "98169343", "1410324",
@@ -145,14 +144,12 @@ object Aoi {
         "59604521" -> Card(id, "Trickstar Rhodode", MONSTER, monster = MonsterStats(4, null, null, 1400, 1900, LIGHT, FAIRY), effectTags = listOf(REVIVE_ONE), trigger = ON_SUMMON)
         "98169343" -> Card(id, "Trickstar Corobane", MONSTER, monster = MonsterStats(5, null, null, 2000, 1000, LIGHT, FAIRY), effectTags = listOf(BUFF_SELF_500), trigger = ON_SUMMON)
         "1410324" -> Card(id, "Trickstar Hoody", MONSTER, monster = MonsterStats(2, null, null, 600, 1800, LIGHT, FAIRY))
-        // 魔法/陷阱
         "35371948" -> Card(id, "Trickstar Light Stage", SPELL, spellType = SpellType.FIELD, effectTags = listOf(BURN_500), trigger = ON_ADD_TO_HAND)
         "62481203" -> Card(id, "Trickstar Festival", SPELL, spellType = SpellType.NORMAL, effectTags = listOf(REVIVE_ONE))
         "88693151" -> Card(id, "Trickstar Fusion", SPELL, spellType = SpellType.NORMAL, effectTags = listOf(DRAW_2))
         "99890852" -> Card(id, "Trickstar Bouquet", SPELL, spellType = SpellType.QUICKPLAY, effectTags = listOf(BUFF_SELF_500))
         "22159429" -> Card(id, "Trickstar Magical Laurel", SPELL, spellType = SpellType.EQUIP, effectTags = listOf(REVIVE_ONE))
         "21076084" -> Card(id, "Trickstar Reincarnation", TRAP, trapType = TrapType.NORMAL, effectTags = listOf(POP_SPELL_TRAP))
-        // 淘气仙星连接
         "32448765" -> Card(id, "Trickstar Holly Angel", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 2, 2000, null, LIGHT, FAIRY, arrows = listOf(BOTTOMLEFT, BOTTOMRIGHT)), effectTags = listOf(BURN_500), trigger = ON_SUMMON, materials = listOf("Trickstar"))
         "94626871" -> Card(id, "Trickstar Black Catbat", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 2, 2000, null, LIGHT, FAIRY, arrows = listOf(LEFT, RIGHT)), effectTags = listOf(BURN_500), trigger = ON_DESTROY, materials = listOf("Trickstar"))
         "14365823" -> Card(id, "Trickstar Divaridis", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 2, 1800, null, LIGHT, FAIRY, arrows = listOf(BOTTOMLEFT, BOTTOM)), effectTags = listOf(BURN_500), trigger = ON_SUMMON, materials = listOf("Trickstar"))
@@ -171,7 +168,6 @@ object Aoi {
         "33945211" -> Card(id, "Marincess Basilalima", MONSTER, monster = MonsterStats(4, null, null, 600, 2100, WATER, CYBERSE), effectTags = listOf(POP_SPELL_TRAP), trigger = ON_DESTROY)
         "21057444" -> Card(id, "Marincess Springirl", MONSTER, monster = MonsterStats(4, null, null, 1200, 1000, WATER, CYBERSE), effectTags = listOf(BURN_500), trigger = ON_SUMMON)
         "57541158" -> Card(id, "Marincess Sleepy Maiden", MONSTER, monster = MonsterStats(5, null, null, 500, 2500, WATER, CYBERSE), effectTags = listOf(DESTROY_ONE_MONSTER), trigger = ON_SUMMON)
-        // 魔法/陷阱
         "91027843" -> Card(id, "Marincess Battle Ocean", SPELL, spellType = SpellType.FIELD, effectTags = listOf(BUFF_SELF_500))
         "57329501" -> Card(id, "Marincess Dive", SPELL, spellType = SpellType.NORMAL, effectTags = listOf(REVIVE_ONE))
         "52945066" -> Card(id, "Marincess Wave", TRAP, trapType = TrapType.NORMAL, effectTags = listOf(DESTROY_ONE_MONSTER), trigger = ON_ATTACK_DECLARE)
@@ -180,7 +176,6 @@ object Aoi {
         "83723605" -> Card(id, "Marincess Circulation", TRAP, trapType = TrapType.NORMAL, effectTags = listOf(REVIVE_ONE))
         "80627281" -> Card(id, "Marincess Snow", TRAP, trapType = TrapType.NORMAL, effectTags = listOf(REVIVE_ONE), trigger = ON_DESTROY)
         "19712214" -> Card(id, "Marincess Bubble Ring", TRAP, trapType = TrapType.NORMAL, effectTags = listOf(DESTROY_ONE_MONSTER), trigger = ON_ATTACK_DECLARE)
-        // 海晶少女连接
         "79130389" -> Card(id, "Marincess Coral Anemone", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 2, 2000, null, WATER, CYBERSE, arrows = listOf(LEFT, BOTTOM)), effectTags = listOf(REVIVE_ONE), trigger = ON_SUMMON, materials = listOf("WATER"))
         "30691817" -> Card(id, "Marincess Sea Angel", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 1, 1000, null, WATER, CYBERSE, arrows = listOf(LEFT)), effectTags = listOf(DRAW_2), trigger = ON_SUMMON, materials = listOf("Marincess"))
         "43735670" -> Card(id, "Marincess Blue Slug", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 1, 1500, null, WATER, CYBERSE, arrows = listOf(BOTTOM)), effectTags = listOf(REVIVE_ONE), trigger = ON_SUMMON, materials = listOf("Marincess"))
