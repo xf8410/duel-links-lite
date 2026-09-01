@@ -114,9 +114,9 @@ object CardDatabase {
 
     private fun byId(id: String) = all.first { it.id == id }
 
-    fun enrich(data: Map<String, Pair<String, String>>) {
+    fun enrich(data: Map<String, ApiFullCard>) {
         all = all.map { c ->
-            data[c.name]?.let { (t, u) -> c.copy(text = t, imageUrl = c.imageUrl ?: u) } ?: c
+            data[c.name]?.let { a -> c.copy(text = a.desc, imageUrl = c.imageUrl ?: a.imageUrl) } ?: c
         }
     }
 
