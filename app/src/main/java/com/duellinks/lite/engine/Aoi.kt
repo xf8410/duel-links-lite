@@ -48,235 +48,163 @@ object Aoi {
         )
     )
 
-    // 运行时由 MainActivity 用 YGOPRODeck API 官方卡文/卡图覆盖；断网或失败时为空（回落内置数据）。
-    private var apiPatch: Map<String, Pair<String, String>> = emptyMap()
+    // 运行时由 MainActivity 用 YGOPRODeck API 的完整卡数据覆盖（数值/卡文/卡图）。离线时为空，回落内置数据。
+    private var apiById: Map<String, ApiFullCard> = emptyMap()
 
-    fun enrich(data: Map<String, Pair<String, String>>) {
-        apiPatch = if (data.isEmpty()) emptyMap() else data
+    fun setApi(cards: Map<String, ApiFullCard>) {
+        apiById = cards
     }
 
-    private fun p(c: Card): Card {
-        val hit = apiPatch[c.name] ?: return c
-        val (t, img) = hit
-        return c.copy(
-            text = if (t.isNotEmpty()) t else c.text,
-            imageUrl = c.imageUrl ?: img.ifEmpty { null }
-        )
+    // YGOPRODeck API 只提供卡文文本、不提供结构化"效果"，所以游戏内的简化效果标签/触发点/连接素材仍需手工标注。
+    private val fxById: Map<String, CardFx> = mapOf(
+        // 淘气仙星
+        "61283655" to CardFx(listOf(DRAW_2), ON_SUMMON),
+        "35199656" to CardFx(listOf(BURN_500), ON_ADD_TO_HAND),
+        "98700941" to CardFx(listOf(REVIVE_ONE), ON_DESTROY),
+        "22219822" to CardFx(listOf(DESTROY_ONE_MONSTER), ON_SUMMON),
+        "86825114" to CardFx(),
+        "91505214" to CardFx(listOf(BURN_500), ON_ADD_TO_HAND),
+        "59604521" to CardFx(listOf(REVIVE_ONE), ON_SUMMON),
+        "98169343" to CardFx(listOf(BUFF_SELF_500), ON_SUMMON),
+        "1410324" to CardFx(),
+        "35371948" to CardFx(listOf(BURN_500), ON_ADD_TO_HAND),
+        "62481203" to CardFx(listOf(REVIVE_ONE)),
+        "88693151" to CardFx(listOf(DRAW_2)),
+        "99890852" to CardFx(listOf(BUFF_SELF_500)),
+        "22159429" to CardFx(listOf(REVIVE_ONE)),
+        "21076084" to CardFx(listOf(POP_SPELL_TRAP)),
+        "32448765" to CardFx(listOf(BURN_500), ON_SUMMON, listOf("Trickstar")),
+        "94626871" to CardFx(listOf(BURN_500), ON_DESTROY, listOf("Trickstar")),
+        "14365823" to CardFx(listOf(BURN_500), ON_SUMMON, listOf("Trickstar")),
+        "51011872" to CardFx(listOf(HEAL_1000), ON_SUMMON, listOf("Trickstar")),
+        "3792766" to CardFx(listOf(DRAW_2), ON_ATTACK_DECLARE, listOf("Trickstar")),
+        "86750474" to CardFx(listOf(BURN_500), ON_DESTROY, listOf("Fairy")),
+        "41302052" to CardFx(listOf(BURN_500), ON_SUMMON, listOf("Trickstar")),
+        "77307161" to CardFx(listOf(DRAW_2), ON_SUMMON, listOf("Trickstar")),
+        // 海晶少女
+        "91953000" to CardFx(listOf(DESTROY_ONE_MONSTER), ON_SUMMON),
+        "99885917" to CardFx(listOf(REVIVE_ONE), ON_SUMMON),
+        "36492575" to CardFx(listOf(REVIVE_ONE), ON_SUMMON),
+        "62886670" to CardFx(listOf(BUFF_SELF_500)),
+        "28174796" to CardFx(listOf(REVIVE_ONE), ON_SUMMON),
+        "54569495" to CardFx(listOf(HEAL_1000), ON_ATTACK_DECLARE),
+        "33945211" to CardFx(listOf(POP_SPELL_TRAP), ON_DESTROY),
+        "21057444" to CardFx(listOf(BURN_500), ON_SUMMON),
+        "57541158" to CardFx(listOf(DESTROY_ONE_MONSTER), ON_SUMMON),
+        "91027843" to CardFx(listOf(BUFF_SELF_500)),
+        "57329501" to CardFx(listOf(REVIVE_ONE)),
+        "52945066" to CardFx(listOf(DESTROY_ONE_MONSTER), ON_ATTACK_DECLARE),
+        "84430165" to CardFx(listOf(BURN_500), ON_DESTROY),
+        "27012990" to CardFx(listOf(BUFF_SELF_500)),
+        "83723605" to CardFx(listOf(REVIVE_ONE)),
+        "80627281" to CardFx(listOf(REVIVE_ONE), ON_DESTROY),
+        "19712214" to CardFx(listOf(DESTROY_ONE_MONSTER), ON_ATTACK_DECLARE),
+        "79130389" to CardFx(listOf(REVIVE_ONE), ON_SUMMON, listOf("WATER")),
+        "30691817" to CardFx(listOf(DRAW_2), ON_SUMMON, listOf("Marincess")),
+        "43735670" to CardFx(listOf(REVIVE_ONE), ON_SUMMON, listOf("Marincess")),
+        "67712104" to CardFx(listOf(HEAL_1000), ON_ATTACK_DECLARE, listOf("WATER")),
+        "5524387" to CardFx(listOf(REVIVE_ONE), ON_SUMMON, listOf("WATER")),
+        "84546257" to CardFx(listOf(POP_SPELL_TRAP), ON_SUMMON, listOf("Marincess")),
+        "94207108" to CardFx(listOf(BUFF_SELF_500), ON_DESTROY, listOf("WATER")),
+        "20934852" to CardFx(listOf(DESTROY_ONE_MONSTER), ON_ATTACK_DECLARE, listOf("WATER")),
+        "47910940" to CardFx(listOf(DRAW_2), ON_TURN_START, listOf("WATER"))
+    )
+
+    // 离线兜底：仅提供数值与占位（卡文运行时用 API 覆盖）。结构与 API 一致。
+    private val trickstarIds = listOf(
+        "61283655", "35199656", "98700941", "22219822", "86825114", "91505214",
+        "59604521", "98169343", "1410324",
+        "35371948", "62481203", "88693151", "99890852", "22159429", "21076084",
+        "32448765", "94626871", "14365823", "51011872", "3792766", "86750474",
+        "41302052", "77307161"
+    )
+
+    private val marincessIds = listOf(
+        "91953000", "99885917", "36492575", "62886670", "28174796", "54569495",
+        "33945211", "21057444", "57541158",
+        "91027843", "57329501",
+        "52945066", "84430165", "27012990", "83723605", "80627281", "19712214",
+        "79130389", "30691817", "43735670", "67712104", "5524387", "84546257",
+        "94207108", "20934852", "47910940"
+    )
+
+    // 以 API 数据为主构造卡；离线时用内置数值兜底。
+    private fun card(id: String): Card? {
+        val api = apiById[id] ?: return fallbackCard(id)
+        return CardApi.toCard(api, fxById[id])
     }
 
-    private fun mon(
-        id: String, name: String, level: Int?, rank: Int?, link: Int?,
-        atk: Int, def: Int?, attr: Attribute, race: Race, kind: SummonKind = SummonKind.NORMAL,
-        tud: Boolean = false, pend: Int? = null, arrows: List<LinkArrow> = emptyList(),
-        tags: List<EffectTag> = emptyList(), mats: List<String> = emptyList(), text: String = "",
-        img: String? = null, trig: TriggerPoint? = null
-    ) = Card(id, name, MONSTER, kind, MonsterStats(level, rank, link, atk, def, attr, race, tud, pend, arrows), null, null, text, tags, mats, img, trig)
+    private fun fallbackCard(id: String): Card? = when (id) {
+        // 淘气仙星主卡组
+        "61283655" -> Card(id, "Trickstar Candina", MONSTER, monster = MonsterStats(4, null, null, 1800, 400, LIGHT, FAIRY), effectTags = listOf(DRAW_2), trigger = ON_SUMMON)
+        "35199656" -> Card(id, "Trickstar Lycoris", MONSTER, monster = MonsterStats(3, null, null, 1600, 1200, LIGHT, FAIRY), effectTags = listOf(BURN_500), trigger = ON_ADD_TO_HAND)
+        "98700941" -> Card(id, "Trickstar Lilybell", MONSTER, monster = MonsterStats(2, null, null, 800, 2000, LIGHT, FAIRY), effectTags = listOf(REVIVE_ONE), trigger = ON_DESTROY)
+        "22219822" -> Card(id, "Trickstar Mandrake", MONSTER, monster = MonsterStats(2, null, null, 0, 1000, LIGHT, FAIRY), effectTags = listOf(DESTROY_ONE_MONSTER), trigger = ON_SUMMON)
+        "86825114" -> Card(id, "Trickstar Nightshade", MONSTER, monster = MonsterStats(1, null, null, 100, 0, LIGHT, FAIRY))
+        "91505214" -> Card(id, "Trickstar Narkissus", MONSTER, monster = MonsterStats(4, null, null, 1000, 1800, LIGHT, FAIRY), effectTags = listOf(BURN_500), trigger = ON_ADD_TO_HAND)
+        "59604521" -> Card(id, "Trickstar Rhodode", MONSTER, monster = MonsterStats(4, null, null, 1400, 1900, LIGHT, FAIRY), effectTags = listOf(REVIVE_ONE), trigger = ON_SUMMON)
+        "98169343" -> Card(id, "Trickstar Corobane", MONSTER, monster = MonsterStats(5, null, null, 2000, 1000, LIGHT, FAIRY), effectTags = listOf(BUFF_SELF_500), trigger = ON_SUMMON)
+        "1410324" -> Card(id, "Trickstar Hoody", MONSTER, monster = MonsterStats(2, null, null, 600, 1800, LIGHT, FAIRY))
+        // 魔法/陷阱
+        "35371948" -> Card(id, "Trickstar Light Stage", SPELL, spellType = SpellType.FIELD, effectTags = listOf(BURN_500), trigger = ON_ADD_TO_HAND)
+        "62481203" -> Card(id, "Trickstar Festival", SPELL, spellType = SpellType.NORMAL, effectTags = listOf(REVIVE_ONE))
+        "88693151" -> Card(id, "Trickstar Fusion", SPELL, spellType = SpellType.NORMAL, effectTags = listOf(DRAW_2))
+        "99890852" -> Card(id, "Trickstar Bouquet", SPELL, spellType = SpellType.QUICKPLAY, effectTags = listOf(BUFF_SELF_500))
+        "22159429" -> Card(id, "Trickstar Magical Laurel", SPELL, spellType = SpellType.EQUIP, effectTags = listOf(REVIVE_ONE))
+        "21076084" -> Card(id, "Trickstar Reincarnation", TRAP, trapType = TrapType.NORMAL, effectTags = listOf(POP_SPELL_TRAP))
+        // 淘气仙星连接
+        "32448765" -> Card(id, "Trickstar Holly Angel", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 2, 2000, null, LIGHT, FAIRY, arrows = listOf(BOTTOMLEFT, BOTTOMRIGHT)), effectTags = listOf(BURN_500), trigger = ON_SUMMON, materials = listOf("Trickstar"))
+        "94626871" -> Card(id, "Trickstar Black Catbat", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 2, 2000, null, LIGHT, FAIRY, arrows = listOf(LEFT, RIGHT)), effectTags = listOf(BURN_500), trigger = ON_DESTROY, materials = listOf("Trickstar"))
+        "14365823" -> Card(id, "Trickstar Divaridis", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 2, 1800, null, LIGHT, FAIRY, arrows = listOf(BOTTOMLEFT, BOTTOM)), effectTags = listOf(BURN_500), trigger = ON_SUMMON, materials = listOf("Trickstar"))
+        "51011872" -> Card(id, "Trickstar Crimson Heart", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 2, 2000, null, LIGHT, FAIRY, arrows = listOf(RIGHT, BOTTOMLEFT)), effectTags = listOf(HEAL_1000), trigger = ON_SUMMON, materials = listOf("Trickstar"))
+        "3792766" -> Card(id, "Trickstar Delfiendium", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 3, 2200, null, LIGHT, FAIRY, arrows = listOf(TOP, BOTTOMLEFT, BOTTOMRIGHT)), effectTags = listOf(DRAW_2), trigger = ON_ATTACK_DECLARE, materials = listOf("Trickstar"))
+        "86750474" -> Card(id, "Trickstar Foxglove Witch", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 3, 2200, null, LIGHT, FAIRY, arrows = listOf(TOP, LEFT, RIGHT)), effectTags = listOf(BURN_500), trigger = ON_DESTROY, materials = listOf("Fairy"))
+        "41302052" -> Card(id, "Trickstar Bella Madonna", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 4, 2800, null, LIGHT, FAIRY, arrows = listOf(TOP, RIGHT, BOTTOMLEFT, BOTTOM)), effectTags = listOf(BURN_500), trigger = ON_SUMMON, materials = listOf("Trickstar"))
+        "77307161" -> Card(id, "Trickstar Bloom", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 1, 100, null, LIGHT, FAIRY, arrows = listOf(BOTTOM)), effectTags = listOf(DRAW_2), trigger = ON_SUMMON, materials = listOf("Trickstar"))
+        // 海晶少女主卡组
+        "91953000" -> Card(id, "Marincess Blue Tang", MONSTER, monster = MonsterStats(4, null, null, 1500, 1200, WATER, CYBERSE), effectTags = listOf(DESTROY_ONE_MONSTER), trigger = ON_SUMMON)
+        "99885917" -> Card(id, "Marincess Pascalus", MONSTER, monster = MonsterStats(4, null, null, 1200, 2000, WATER, CYBERSE), effectTags = listOf(REVIVE_ONE), trigger = ON_SUMMON)
+        "36492575" -> Card(id, "Marincess Sea Horse", MONSTER, monster = MonsterStats(3, null, null, 1400, 1000, WATER, CYBERSE), effectTags = listOf(REVIVE_ONE), trigger = ON_SUMMON)
+        "62886670" -> Card(id, "Marincess Sea Star", MONSTER, monster = MonsterStats(2, null, null, 800, 400, WATER, CYBERSE), effectTags = listOf(BUFF_SELF_500))
+        "28174796" -> Card(id, "Marincess Mandarin", MONSTER, monster = MonsterStats(1, null, null, 100, 100, WATER, CYBERSE), effectTags = listOf(REVIVE_ONE), trigger = ON_SUMMON)
+        "54569495" -> Card(id, "Marincess Crown Tail", MONSTER, monster = MonsterStats(5, null, null, 600, 2300, WATER, CYBERSE), effectTags = listOf(HEAL_1000), trigger = ON_ATTACK_DECLARE)
+        "33945211" -> Card(id, "Marincess Basilalima", MONSTER, monster = MonsterStats(4, null, null, 600, 2100, WATER, CYBERSE), effectTags = listOf(POP_SPELL_TRAP), trigger = ON_DESTROY)
+        "21057444" -> Card(id, "Marincess Springirl", MONSTER, monster = MonsterStats(4, null, null, 1200, 1000, WATER, CYBERSE), effectTags = listOf(BURN_500), trigger = ON_SUMMON)
+        "57541158" -> Card(id, "Marincess Sleepy Maiden", MONSTER, monster = MonsterStats(5, null, null, 500, 2500, WATER, CYBERSE), effectTags = listOf(DESTROY_ONE_MONSTER), trigger = ON_SUMMON)
+        // 魔法/陷阱
+        "91027843" -> Card(id, "Marincess Battle Ocean", SPELL, spellType = SpellType.FIELD, effectTags = listOf(BUFF_SELF_500))
+        "57329501" -> Card(id, "Marincess Dive", SPELL, spellType = SpellType.NORMAL, effectTags = listOf(REVIVE_ONE))
+        "52945066" -> Card(id, "Marincess Wave", TRAP, trapType = TrapType.NORMAL, effectTags = listOf(DESTROY_ONE_MONSTER), trigger = ON_ATTACK_DECLARE)
+        "84430165" -> Card(id, "Marincess Current", TRAP, trapType = TrapType.NORMAL, effectTags = listOf(BURN_500), trigger = ON_DESTROY)
+        "27012990" -> Card(id, "Marincess Cascade", TRAP, trapType = TrapType.NORMAL, effectTags = listOf(BUFF_SELF_500))
+        "83723605" -> Card(id, "Marincess Circulation", TRAP, trapType = TrapType.NORMAL, effectTags = listOf(REVIVE_ONE))
+        "80627281" -> Card(id, "Marincess Snow", TRAP, trapType = TrapType.NORMAL, effectTags = listOf(REVIVE_ONE), trigger = ON_DESTROY)
+        "19712214" -> Card(id, "Marincess Bubble Ring", TRAP, trapType = TrapType.NORMAL, effectTags = listOf(DESTROY_ONE_MONSTER), trigger = ON_ATTACK_DECLARE)
+        // 海晶少女连接
+        "79130389" -> Card(id, "Marincess Coral Anemone", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 2, 2000, null, WATER, CYBERSE, arrows = listOf(LEFT, BOTTOM)), effectTags = listOf(REVIVE_ONE), trigger = ON_SUMMON, materials = listOf("WATER"))
+        "30691817" -> Card(id, "Marincess Sea Angel", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 1, 1000, null, WATER, CYBERSE, arrows = listOf(LEFT)), effectTags = listOf(DRAW_2), trigger = ON_SUMMON, materials = listOf("Marincess"))
+        "43735670" -> Card(id, "Marincess Blue Slug", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 1, 1500, null, WATER, CYBERSE, arrows = listOf(BOTTOM)), effectTags = listOf(REVIVE_ONE), trigger = ON_SUMMON, materials = listOf("Marincess"))
+        "67712104" -> Card(id, "Marincess Crystal Heart", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 2, 0, null, WATER, CYBERSE, arrows = listOf(BOTTOMLEFT, BOTTOMRIGHT)), effectTags = listOf(HEAL_1000), trigger = ON_ATTACK_DECLARE, materials = listOf("WATER"))
+        "5524387" -> Card(id, "Marincess Marbled Rock", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 3, 2500, null, WATER, CYBERSE, arrows = listOf(LEFT, RIGHT, BOTTOM)), effectTags = listOf(REVIVE_ONE), trigger = ON_SUMMON, materials = listOf("WATER"))
+        "84546257" -> Card(id, "Marincess Coral Triangle", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 3, 1500, null, WATER, CYBERSE, arrows = listOf(TOP, BOTTOMLEFT, BOTTOMRIGHT)), effectTags = listOf(POP_SPELL_TRAP), trigger = ON_SUMMON, materials = listOf("Marincess"))
+        "94207108" -> Card(id, "Marincess Wonder Heart", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 4, 2400, null, WATER, CYBERSE, arrows = listOf(LEFT, RIGHT, BOTTOMLEFT, BOTTOMRIGHT)), effectTags = listOf(BUFF_SELF_500), trigger = ON_DESTROY, materials = listOf("WATER"))
+        "20934852" -> Card(id, "Marincess Aqua Argonaut", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 4, 2300, null, WATER, CYBERSE, arrows = listOf(TOP, LEFT, RIGHT, BOTTOM)), effectTags = listOf(DESTROY_ONE_MONSTER), trigger = ON_ATTACK_DECLARE, materials = listOf("WATER"))
+        "47910940" -> Card(id, "Marincess Great Bubble Reef", MONSTER, kind = SummonKind.LINK, monster = MonsterStats(null, null, 4, 2600, null, WATER, CYBERSE, arrows = listOf(LEFT, RIGHT, BOTTOM, BOTTOMRIGHT)), effectTags = listOf(DRAW_2), trigger = ON_TURN_START, materials = listOf("WATER"))
+        else -> null
+    }
 
-    private fun spell(id: String, name: String, st: SpellType, tags: List<EffectTag> = emptyList(), text: String = "", img: String? = null, trig: TriggerPoint? = null) =
-        Card(id, name, SPELL, spellType = st, effectTags = tags, text = text, imageUrl = img, trigger = trig)
-
-    private fun trap(id: String, name: String, tt: TrapType, tags: List<EffectTag> = emptyList(), text: String = "", img: String? = null, trig: TriggerPoint? = null) =
-        Card(id, name, TRAP, trapType = tt, effectTags = tags, text = text, imageUrl = img, trigger = trig)
-
-    private fun img(id: String) = "https://images.ygoprodeck.com/images/cards/$id.jpg"
-
-    // ========== 淘气仙星 (Trickstar) — 数据来自 YGOPRODeck API ==========
-    private val trickstarCards: List<Card> = listOf(
-        mon("61283655", "Trickstar Candina", 4, null, null, 1800, 400, LIGHT, FAIRY,
-            tags = listOf(DRAW_2), trig = ON_SUMMON,
-            text = "",
-            img = img("61283655")),
-        mon("35199656", "Trickstar Lycoris", 3, null, null, 1600, 1200, LIGHT, FAIRY,
-            tags = listOf(BURN_500), trig = ON_ADD_TO_HAND,
-            text = "",
-            img = img("35199656")),
-        mon("98700941", "Trickstar Lilybell", 2, null, null, 800, 2000, LIGHT, FAIRY,
-            tags = listOf(REVIVE_ONE), trig = ON_DESTROY,
-            text = "",
-            img = img("98700941")),
-        mon("22219822", "Trickstar Mandrake", 2, null, null, 0, 1000, LIGHT, FAIRY,
-            tags = listOf(DESTROY_ONE_MONSTER), trig = ON_SUMMON,
-            text = "",
-            img = img("22219822")),
-        mon("86825114", "Trickstar Nightshade", 1, null, null, 100, 0, LIGHT, FAIRY,
-            text = "",
-            img = img("86825114")),
-        mon("91505214", "Trickstar Narkissus", 4, null, null, 1000, 1800, LIGHT, FAIRY,
-            tags = listOf(BURN_500), trig = ON_ADD_TO_HAND,
-            text = "",
-            img = img("91505214")),
-        mon("59604521", "Trickstar Rhodode", 4, null, null, 1400, 1900, LIGHT, FAIRY,
-            tags = listOf(REVIVE_ONE), trig = ON_SUMMON,
-            text = "",
-            img = img("59604521")),
-        mon("98169343", "Trickstar Corobane", 5, null, null, 2000, 1000, LIGHT, FAIRY,
-            tags = listOf(BUFF_SELF_500), trig = ON_SUMMON,
-            text = "",
-            img = img("98169343")),
-        mon("1410324", "Trickstar Hoody", 2, null, null, 600, 1800, LIGHT, FAIRY,
-            text = "",
-            img = img("1410324")),
-        spell("35371948", "Trickstar Light Stage", SpellType.FIELD, tags = listOf(BURN_500), trig = ON_ADD_TO_HAND,
-            text = "",
-            img = img("35371948")),
-        spell("62481203", "Trickstar Festival", SpellType.NORMAL, tags = listOf(REVIVE_ONE),
-            text = "",
-            img = img("62481203")),
-        spell("88693151", "Trickstar Fusion", SpellType.NORMAL, tags = listOf(DRAW_2),
-            text = "",
-            img = img("88693151")),
-        spell("99890852", "Trickstar Bouquet", SpellType.QUICKPLAY, tags = listOf(BUFF_SELF_500),
-            text = "",
-            img = img("99890852")),
-        spell("22159429", "Trickstar Magical Laurel", SpellType.EQUIP, tags = listOf(REVIVE_ONE),
-            text = "",
-            img = img("22159429")),
-        trap("21076084", "Trickstar Reincarnation", TrapType.NORMAL, tags = listOf(POP_SPELL_TRAP),
-            text = "",
-            img = img("21076084")),
-        mon("32448765", "Trickstar Holly Angel", null, null, 2, 2000, null, LIGHT, FAIRY, kind = SummonKind.LINK,
-            arrows = listOf(BOTTOMLEFT, BOTTOMRIGHT), tags = listOf(BURN_500), trig = ON_SUMMON,
-            text = "",
-            mats = listOf("Trickstar"), img = img("32448765")),
-        mon("94626871", "Trickstar Black Catbat", null, null, 2, 2000, null, LIGHT, FAIRY, kind = SummonKind.LINK,
-            arrows = listOf(LEFT, RIGHT), tags = listOf(BURN_500), trig = ON_DESTROY,
-            text = "",
-            mats = listOf("Trickstar"), img = img("94626871")),
-        mon("14365823", "Trickstar Divaridis", null, null, 2, 1800, null, LIGHT, FAIRY, kind = SummonKind.LINK,
-            arrows = listOf(BOTTOMLEFT, BOTTOM), tags = listOf(BURN_500), trig = ON_SUMMON,
-            text = "",
-            mats = listOf("Trickstar"), img = img("14365823")),
-        mon("51011872", "Trickstar Crimson Heart", null, null, 2, 2000, null, LIGHT, FAIRY, kind = SummonKind.LINK,
-            arrows = listOf(RIGHT, BOTTOMLEFT), tags = listOf(HEAL_1000), trig = ON_SUMMON,
-            text = "",
-            mats = listOf("Trickstar"), img = img("51011872")),
-        mon("3792766", "Trickstar Delfiendium", null, null, 3, 2200, null, LIGHT, FAIRY, kind = SummonKind.LINK,
-            arrows = listOf(TOP, BOTTOMLEFT, BOTTOMRIGHT), tags = listOf(DRAW_2), trig = ON_ATTACK_DECLARE,
-            text = "",
-            mats = listOf("Trickstar"), img = img("3792766")),
-        mon("86750474", "Trickstar Foxglove Witch", null, null, 3, 2200, null, LIGHT, FAIRY, kind = SummonKind.LINK,
-            arrows = listOf(TOP, LEFT, RIGHT), tags = listOf(BURN_500), trig = ON_DESTROY,
-            text = "",
-            mats = listOf("Fairy"), img = img("86750474")),
-        mon("41302052", "Trickstar Bella Madonna", null, null, 4, 2800, null, LIGHT, FAIRY, kind = SummonKind.LINK,
-            arrows = listOf(TOP, RIGHT, BOTTOMLEFT, BOTTOM), tags = listOf(BURN_500), trig = ON_SUMMON,
-            text = "",
-            mats = listOf("Trickstar"), img = img("41302052")),
-        mon("77307161", "Trickstar Bloom", null, null, 1, 100, null, LIGHT, FAIRY, kind = SummonKind.LINK,
-            arrows = listOf(BOTTOM), tags = listOf(DRAW_2), trig = ON_SUMMON,
-            text = "",
-            mats = listOf("Trickstar"), img = img("77307161"))
-    )
-
-    // ========== 海晶少女 (Marincess) — 数据来自 YGOPRODeck API ==========
-    private val marincessCards: List<Card> = listOf(
-        mon("91953000", "Marincess Blue Tang", 4, null, null, 1500, 1200, WATER, CYBERSE,
-            tags = listOf(DESTROY_ONE_MONSTER), trig = ON_SUMMON,
-            text = "",
-            img = img("91953000")),
-        mon("99885917", "Marincess Pascalus", 4, null, null, 1200, 2000, WATER, CYBERSE,
-            tags = listOf(REVIVE_ONE), trig = ON_SUMMON,
-            text = "",
-            img = img("99885917")),
-        mon("36492575", "Marincess Sea Horse", 3, null, null, 1400, 1000, WATER, CYBERSE,
-            tags = listOf(REVIVE_ONE), trig = ON_SUMMON,
-            text = "",
-            img = img("36492575")),
-        mon("62886670", "Marincess Sea Star", 2, null, null, 800, 400, WATER, CYBERSE,
-            tags = listOf(BUFF_SELF_500),
-            text = "",
-            img = img("62886670")),
-        mon("28174796", "Marincess Mandarin", 1, null, null, 100, 100, WATER, CYBERSE,
-            tags = listOf(REVIVE_ONE), trig = ON_SUMMON,
-            text = "",
-            img = img("28174796")),
-        mon("54569495", "Marincess Crown Tail", 5, null, null, 600, 2300, WATER, CYBERSE,
-            tags = listOf(HEAL_1000), trig = ON_ATTACK_DECLARE,
-            text = "",
-            img = img("54569495")),
-        mon("33945211", "Marincess Basilalima", 4, null, null, 600, 2100, WATER, CYBERSE,
-            tags = listOf(POP_SPELL_TRAP), trig = ON_DESTROY,
-            text = "",
-            img = img("33945211")),
-        mon("21057444", "Marincess Springirl", 4, null, null, 1200, 1000, WATER, CYBERSE,
-            tags = listOf(BURN_500), trig = ON_SUMMON,
-            text = "",
-            img = img("21057444")),
-        mon("57541158", "Marincess Sleepy Maiden", 5, null, null, 500, 2500, WATER, CYBERSE,
-            tags = listOf(DESTROY_ONE_MONSTER), trig = ON_SUMMON,
-            text = "",
-            img = img("57541158")),
-        spell("91027843", "Marincess Battle Ocean", SpellType.FIELD, tags = listOf(BUFF_SELF_500),
-            text = "",
-            img = img("91027843")),
-        spell("57329501", "Marincess Dive", SpellType.NORMAL, tags = listOf(REVIVE_ONE),
-            text = "",
-            img = img("57329501")),
-        trap("52945066", "Marincess Wave", TrapType.NORMAL, tags = listOf(DESTROY_ONE_MONSTER), trig = ON_ATTACK_DECLARE,
-            text = "",
-            img = img("52945066")),
-        trap("84430165", "Marincess Current", TrapType.NORMAL, tags = listOf(BURN_500), trig = ON_DESTROY,
-            text = "",
-            img = img("84430165")),
-        trap("27012990", "Marincess Cascade", TrapType.NORMAL, tags = listOf(BUFF_SELF_500),
-            text = "",
-            img = img("27012990")),
-        trap("83723605", "Marincess Circulation", TrapType.NORMAL, tags = listOf(REVIVE_ONE),
-            text = "",
-            img = img("83723605")),
-        trap("80627281", "Marincess Snow", TrapType.NORMAL, tags = listOf(REVIVE_ONE), trig = ON_DESTROY,
-            text = "",
-            img = img("80627281")),
-        trap("19712214", "Marincess Bubble Ring", TrapType.NORMAL, tags = listOf(DESTROY_ONE_MONSTER), trig = ON_ATTACK_DECLARE,
-            text = "",
-            img = img("19712214")),
-        mon("79130389", "Marincess Coral Anemone", null, null, 2, 2000, null, WATER, CYBERSE, kind = SummonKind.LINK,
-            arrows = listOf(LEFT, BOTTOM), tags = listOf(REVIVE_ONE), trig = ON_SUMMON,
-            text = "",
-            mats = listOf("WATER"), img = img("79130389")),
-        mon("30691817", "Marincess Sea Angel", null, null, 1, 1000, null, WATER, CYBERSE, kind = SummonKind.LINK,
-            arrows = listOf(LEFT), tags = listOf(DRAW_2), trig = ON_SUMMON,
-            text = "",
-            mats = listOf("Marincess"), img = img("30691817")),
-        mon("43735670", "Marincess Blue Slug", null, null, 1, 1500, null, WATER, CYBERSE, kind = SummonKind.LINK,
-            arrows = listOf(BOTTOM), tags = listOf(REVIVE_ONE), trig = ON_SUMMON,
-            text = "",
-            mats = listOf("Marincess"), img = img("43735670")),
-        mon("67712104", "Marincess Crystal Heart", null, null, 2, 0, null, WATER, CYBERSE, kind = SummonKind.LINK,
-            arrows = listOf(BOTTOMLEFT, BOTTOMRIGHT), tags = listOf(HEAL_1000), trig = ON_ATTACK_DECLARE,
-            text = "",
-            mats = listOf("WATER"), img = img("67712104")),
-        mon("5524387", "Marincess Marbled Rock", null, null, 3, 2500, null, WATER, CYBERSE, kind = SummonKind.LINK,
-            arrows = listOf(LEFT, RIGHT, BOTTOM), tags = listOf(REVIVE_ONE), trig = ON_SUMMON,
-            text = "",
-            mats = listOf("WATER"), img = img("5524387")),
-        mon("84546257", "Marincess Coral Triangle", null, null, 3, 1500, null, WATER, CYBERSE, kind = SummonKind.LINK,
-            arrows = listOf(TOP, BOTTOMLEFT, BOTTOMRIGHT), tags = listOf(POP_SPELL_TRAP), trig = ON_SUMMON,
-            text = "",
-            mats = listOf("Marincess"), img = img("84546257")),
-        mon("94207108", "Marincess Wonder Heart", null, null, 4, 2400, null, WATER, CYBERSE, kind = SummonKind.LINK,
-            arrows = listOf(LEFT, RIGHT, BOTTOMLEFT, BOTTOMRIGHT), tags = listOf(BUFF_SELF_500), trig = ON_DESTROY,
-            text = "",
-            mats = listOf("WATER"), img = img("94207108")),
-        mon("20934852", "Marincess Aqua Argonaut", null, null, 4, 2300, null, WATER, CYBERSE, kind = SummonKind.LINK,
-            arrows = listOf(TOP, LEFT, RIGHT, BOTTOM), tags = listOf(DESTROY_ONE_MONSTER), trig = ON_ATTACK_DECLARE,
-            text = "",
-            mats = listOf("WATER"), img = img("20934852")),
-        mon("47910940", "Marincess Great Bubble Reef", null, null, 4, 2600, null, WATER, CYBERSE, kind = SummonKind.LINK,
-            arrows = listOf(LEFT, RIGHT, BOTTOM, BOTTOMRIGHT), tags = listOf(DRAW_2), trig = ON_TURN_START,
-            text = "",
-            mats = listOf("WATER"), img = img("47910940"))
-    )
-
-    fun allCards(): List<Card> = (trickstarCards + marincessCards).map(::p)
+    fun allCards(): List<Card> = (trickstarIds + marincessIds).mapNotNull { card(it) }
     fun byName(name: String): Card? = allCards().firstOrNull { it.name == name }
 
     private fun fill(main: List<Card>): List<Card> =
         main + List((20 - main.size).coerceAtLeast(0)) { main.first() }
 
-    fun deckFor(skin: Skin): Pair<List<Card>, List<Card>> = when (skin.deckTag) {
-        "marincess" -> fill(marincessCards.filter { it.type == MONSTER && it.kind == SummonKind.NORMAL }.map(::p)) to marincessCards.filter { it.kind == SummonKind.LINK }.map(::p)
-        else -> fill(trickstarCards.filter { it.type == MONSTER && it.kind == SummonKind.NORMAL }.map(::p)) to trickstarCards.filter { it.kind == SummonKind.LINK }.map(::p)
+    fun deckFor(skin: Skin): Pair<List<Card>, List<Card>> {
+        val ids = if (skin.deckTag == "marincess") marincessIds else trickstarIds
+        val all = ids.mapNotNull { card(it) }
+        val main = all.filter { it.type == MONSTER && it.kind == SummonKind.NORMAL }
+        val extra = all.filter { it.kind == SummonKind.LINK || it.kind == SummonKind.FUSION || it.kind == SummonKind.SYNCHRO || it.kind == SummonKind.XYZ }
+        return fill(main) to extra
     }
 
     fun applySkillSetup(skill: SkillMeta, extra: List<Card>): List<Card> {
